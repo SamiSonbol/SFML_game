@@ -29,7 +29,7 @@ float Physics::Material::compute_damping_coefficient(const float& spring_constan
 
 float Physics::Material::to_GPa(const float& Pa) {
 
-    return Pa / 1000000000.0f; // Correct: divides by 1 billion to convert Pa to GPa
+    return Pa / 1000000000.0f;
 
 };
 
@@ -160,7 +160,7 @@ void Physics::point_mass::collide(point_mass& point, const float& point_elastici
 
         vec3 collisionNormal = find_collision(point).normal;
         float relativeVelocity = (v2 - v1).dot(collisionNormal);
-        if (relativeVelocity > 0) {
+        if (relativeVelocity > 0.0f) {
 
             return;
 
@@ -427,7 +427,7 @@ Physics::Body::Body(const std::vector<vec3>& positions, const Material& material
     int total_points = 0;
 
     float space_manager = radius * 3.55f;// * 2.25 provides best simulation but causes big instabilities in various shapes due to overcrowding colliders/vertices
-                                                 // * 3.55 provides the best stability
+                                        // * 3.55 provides the best stability
 
     std::vector<int> sizes;
 
@@ -435,13 +435,8 @@ Physics::Body::Body(const std::vector<vec3>& positions, const Material& material
 
         int next_index = (i + 1) % positions.size();
 
-        float X = positions[next_index].x - positions[i].x;
-
-        float Y = positions[next_index].y - positions[i].y;
-
-        vec3 length(X, Y);
-
-        float distance = length.magnitude();
+        //distance between this position and the next
+        float distance = (positions[next_index] - positions[i]).magnitude();
 
         int n_points = distance / space_manager;
 

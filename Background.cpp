@@ -1,75 +1,14 @@
 #include "Background.h"
 
-Background::Background(int stage) {
+Background::Background(const std::string& image_path, const sf::Vector2u& spritesheet_size, const int fps) : image(image_path, spritesheet_size) {
 
-	this->stage = stage;
+	this->fps = fps;
 
-	time = 0.f;
+};
 
-	time_clock;
+void Background::RENDER(sf::RenderWindow* window, const float& delta_time) {
 
-	is_time_set = false;
+	this->animator.update(this->rendered_sprite, this->image.texture, this->image.size, this->image.frame_size, this->image.sprite_scale, this->image.current_frame, this->image.elapsed_time, delta_time, this->fps);
+	window->draw(this->rendered_sprite);
 
-	flip_x = 0;
-
-	flip_y = 0;
-
-	if (stage == 12) {
-
-		background.loadFromFile("moon_bamboo_forest.png");
-
-		moon_bamboo_forest.setTexture(background);
-
-		moon_bamboo_forest.setTextureRect(IntRect(flip_x, flip_y, 800, 335));
-
-	    moon_bamboo_forest.setScale(2.4, 3.22);
-
-
-	}
-
-}
-
-void Background::load_background_frames(int stage) {
-
-	this->stage = stage;
-
-	if (stage == 12) {
-
-		is_time_set = true;
-
-		if (is_time_set) {
-
-			time += time_clock.restart().asMilliseconds();
-
-			if (time >= 200.f) {
-
-				moon_bamboo_forest.setTextureRect(IntRect(flip_x, flip_y, 800, 335));
-
-				flip_x = flip_x + 800;
-
-		        moon_bamboo_forest.setTextureRect(IntRect(flip_x, flip_y, 800, 335));
-
-				if (flip_x >= 3200) {
-
-					flip_x = 0;
-
-					flip_y = flip_y + 336;
-				}
-
-				if (flip_y >= 2353) {
-
-					flip_y = 0;
-
-				}
-
-			time = 0.f;
-
-			is_time_set = false;
-
-			}
-
-		}
-		
-	}
-
-}
+};

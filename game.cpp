@@ -2,17 +2,18 @@
 #include <SFML/Window.hpp>
 #include <SFML/System.hpp>
 #include <iostream>
-#include <math.h>
+#include <Math.h>
 #include <algorithm>
 #include <chrono>
 #include <thread>
 #include <string.h>
-#include<vector>
+#include <vector>
+#include "Fighter.h"
+#include "Grid.h"
 #include "Aramusha.h"
 #include "Enemy.h"
 #include "Fluids.h"
 #include "Physics.h"
-#include "Grid.h"
 #include "Background.h"
 
 int main() {
@@ -30,66 +31,45 @@ int main() {
 	/////-------------------------------------------------------------------------------------------------------------------------------------------
 	//////------------------------------------------------------------------------------------------------------------------------------------------
 	/////-------------------------------------------------------------------------------------------------------------------------------------------
-
-	std::shared_ptr<Physics> physics_controller = std::make_shared<Physics>();
-
-	//std::shared_ptr<Physics::engine> engine = std::make_shared<Physics::engine>();
-
-	physics_controller->setWindow(&window);
-
-	physics_controller->create_planet(150, 700, 900);
-
-	physics_controller->create_planet(40, 1060, 900);
-
-	physics_controller->create_planet(80, 500, 1060);
-
-	physics_controller->create_border(true, window.getSize().x, 5, 0, window.getSize().y - 45);//lower border
-
-	physics_controller->create_border(true, window.getSize().x, 5, 0, 0);//upper border
-
-	physics_controller->create_border(false, 5, window.getSize().y, 0, 0);//left border
-
-	physics_controller->create_border(false, 5, window.getSize().y, 1880, 0);//right border
+	vec3 gravity(0, 9.81, 0);
+	std::vector<vec3> positions = { vec3(500, 500), vec3(700, 500), vec3(700, 700), vec3(500, 700) };
+	Physics physics_controller;
+	physics_controller.Bodies.emplace_back(positions, Physics::Material::wood(), 500.0f, 2.0f);
+	physics_controller.Bodies[0].frame.setFillColor(sf::Color(250, 0, 0, 250));
+	physics_controller.Bodies[0].index = physics_controller.Bodies.size() - 1;
 
 	bool start = true;
 
 
 	std::vector<std::vector<int>> game_grid_2DVector(window_height, std::vector<int>(window_width, 0));
+	Grid game_grid = Grid(game_grid_2DVector);
 
-	std::shared_ptr<Grid> game_grid = std::make_shared<Grid>(game_grid_2DVector);
+	//Fluids Blood;
 
-	Background background = Background(12);
+	Background background = Background("resources\\Backgrounds\\moon_bamboo_forest.png", {5, 8});
 
-	std::shared_ptr<Fluids> Blood = std::make_shared<Fluids>();
+	Aramusha aramusha = Aramusha();
 
-	std::shared_ptr<Aramusha> aramusha = std::make_shared<Aramusha>();
+	Enemy AI = Enemy();
 
-	std::shared_ptr<Enemy> AI = std::make_shared<Enemy>();
+	//Blood->setWindow(&window);
 
+	//Blood->setGrid(game_grid);
 
-	aramusha->setEnemy(AI);
+	//Blood->setEnemy(AI);
 
-	AI->setAramusha(aramusha);
+	//Blood->setAramusha(aramusha);
 
-	Blood->setWindow(&window);
+	//Blood->setPhysics(physics_controller);
 
-	Blood->setGrid(game_grid);
-
-	Blood->setEnemy(AI);
-
-	Blood->setAramusha(aramusha);
-
-	Blood->setPhysics(physics_controller);
-
-	physics_controller->setFluids(Blood);
+	//physics_controller->setFluids(Blood);
 
 
 	//Blood
-	Blood->start_blood_cut_thread();
+	//Blood.start_blood_cut_thread(physics_controller, game_grid, &window, AI.main_sprite);
 	
 	//Physics
-	physics_controller->start_collider_control_thread(physics_controller->points, physics_controller->colliders);
-
+	//physics_controller.start_collider_control_thread(&window, physics_controller.points, physics_controller.colliders);
 	//window loop
 	while (window.isOpen()) {
 
@@ -103,47 +83,42 @@ int main() {
 
 				window.close();
 
-			}
+			};
 
-		}
-
-		//background
-		background.load_background_frames(12);
+		};
 		
 		//aramusha
-		aramusha->live();
+		aramusha.live(AI, dt);
 
 		//AI
-		AI->live(1);
-
-		physics_controller->TEST(&window, *physics_controller, start);
-
-		physics_controller->UPDATE(dt, physics_controller->planets, physics_controller->borders, physics_controller->points, physics_controller->colliders, physics_controller->constraints);
+		AI.live(aramusha, dt);
+		
+		physics_controller.collider_control(&window);
+		physics_controller.TEST(&window, gravity, start);
+		physics_controller.UPDATE(dt, gravity);
 
 		//window drawing logic
 		window.clear(Color::Black);
 
-		window.draw(background.moon_bamboo_forest);
+		background.RENDER(&window, dt);
 
-		window.draw(Blood->shoji);
+		//window.draw(Blood.shoji);
 
-		window.draw(aramusha->idle_sprite);
+		aramusha.RENDER(&window, dt);
 
-		window.draw(AI->idle_sprite);
+		AI.RENDER(&window, dt);
 
-		Blood->myPool.Thread_Lock.lock();
+		physics_controller.RENDER(&window);
 
-		for (const auto& cells : Blood->Blood_cells) {
+		//Blood.myPool.Thread_Lock.lock();
 
-			window.draw(cells);
+		//for (const auto& cells : Blood.Blood_cells) {
 
-		}
-		
-		physics_controller->render_colliders(physics_controller->blood_points, physics_controller->blood_colliders);
+			//window.draw(cells);
 
-		Blood->myPool.Thread_Lock.unlock(); 
-		
-		physics_controller->RENDER(physics_controller->points, physics_controller->colliders, physics_controller->constraints, physics_controller->Lines);
+		//}
+
+		//Blood.myPool.Thread_Lock.unlock(); 	
 
 		window.display();
 

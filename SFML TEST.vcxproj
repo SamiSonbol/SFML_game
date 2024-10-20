@@ -131,6 +131,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Animation.cpp" />
     <ClCompile Include="Aramusha.cpp" />
     <ClCompile Include="Background.cpp" />
     <ClCompile Include="Enemy.cpp" />
@@ -138,18 +139,88 @@
     <ClCompile Include="Fluids.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="Grid.cpp" />
+    <ClCompile Include="Math.cpp" />
     <ClCompile Include="Physics.cpp" />
-    <ClCompile Include="SamuraiCommander.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Animation.h" />
     <ClInclude Include="Aramusha.h" />
     <ClInclude Include="Background.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="Fighter.h" />
     <ClInclude Include="Fluids.h" />
     <ClInclude Include="Grid.h" />
+    <ClInclude Include="Math.h" />
     <ClInclude Include="Physics.h" />
-    <ClInclude Include="SamuraiCommander.h" />
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\Aramusha\Aramusha_attack_from_leftside.png" />
+    <Image Include="resources\Aramusha\Aramusha_attack_from_rightside.png" />
+    <Image Include="resources\Aramusha\Aramusha_falldown_to_leftside.png" />
+    <Image Include="resources\Aramusha\Aramusha_falldown_to_rightside.png" />
+    <Image Include="resources\Aramusha\Aramusha_idle_looking_AtLeftside - Copy - Copy.png" />
+    <Image Include="resources\Aramusha\Aramusha_idle_looking_AtLeftside - Copy.png" />
+    <Image Include="resources\Aramusha\Aramusha_idle_looking_AtLeftside.png" />
+    <Image Include="resources\Aramusha\Aramusha_jump_to_leftside.png" />
+    <Image Include="resources\Aramusha\Aramusha_jump_to_rightside.png" />
+    <Image Include="resources\Aramusha\Aramusha_run_to_leftside.png" />
+    <Image Include="resources\Aramusha\Aramusha_run_to_rightside.png" />
+    <Image Include="resources\Aramusha\Idle_Aramusha.png" />
+    <Image Include="resources\Aramusha\Idle_Aramusha_left.png" />
+    <Image Include="resources\Backgrounds\Forest_background.png" />
+    <Image Include="resources\Backgrounds\moon_bamboo_forest.png" />
+    <Image Include="resources\Backgrounds\shoji.png" />
+    <Image Include="resources\Peasant\Idle_Peasant.png" />
+    <Image Include="resources\Peasant\Idle_Peasant_left.png" />
+    <Image Include="resources\Peasant\Idle_Peasant_wound.png" />
+    <Image Include="resources\Peasant\Peasant_attack_from_leftside1.png" />
+    <Image Include="resources\Peasant\Peasant_attack_from_leftside2.png" />
+    <Image Include="resources\Peasant\Peasant_attack_from_rightside1.png" />
+    <Image Include="resources\Peasant\Peasant_attack_from_rightside2.png" />
+    <Image Include="resources\Peasant\Peasant_block_to_leftside.png" />
+    <Image Include="resources\Peasant\Peasant_block_to_rightside.png" />
+    <Image Include="resources\Peasant\Peasant_hurt_at_leftside.png" />
+    <Image Include="resources\Peasant\Peasant_hurt_at_rightside.png" />
+    <Image Include="resources\Peasant\Peasant_run_to_leftside.png" />
+    <Image Include="resources\Peasant\Peasant_run_to_rightside.png" />
+    <Image Include="resources\Peasant\Peasant_walk_to_leftside.png" />
+    <Image Include="resources\Peasant\Peasant_walk_to_rightside.png" />
+    <Image Include="resources\Peasant\Shot.png" />
+    <Image Include="resources\Samurai Archer\Idle_SamuraiArcher.png" />
+    <Image Include="resources\Samurai Archer\Idle_SamuraiArcher_left.png" />
+    <Image Include="resources\Samurai Archer\SamuraiArcher_attack_from_leftside1.png" />
+    <Image Include="resources\Samurai Archer\SamuraiArcher_attack_from_leftside2.png" />
+    <Image Include="resources\Samurai Archer\SamuraiArcher_attack_from_leftside3.png" />
+    <Image Include="resources\Samurai Archer\SamuraiArcher_attack_from_rightside1.png" />
+    <Image Include="resources\Samurai Archer\SamuraiArcher_attack_from_rightside2.png" />
+    <Image Include="resources\Samurai Archer\SamuraiArcher_attack_from_rightside3.png" />
+    <Image Include="resources\Samurai Archer\SamuraiArcher_hurt_at_leftside.png" />
+    <Image Include="resources\Samurai Archer\SamuraiArcher_hurt_at_rightside.png" />
+    <Image Include="resources\Samurai Archer\SamuraiArcher_run_to_leftside.png" />
+    <Image Include="resources\Samurai Archer\SamuraiArcher_run_to_rightside.png" />
+    <Image Include="resources\Samurai Archer\SamuraiArcher_shoot_from_leftside.png" />
+    <Image Include="resources\Samurai Archer\SamuraiArcher_shoot_from_rightside.png" />
+    <Image Include="resources\Samurai Commander\Idle_SamuraiCommander.png" />
+    <Image Include="resources\Samurai Commander\Idle_SamuraiCommander_left.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_attack_from_leftside1.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_attack_from_leftside2.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_attack_from_leftside3.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_attack_from_rightside1.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_attack_from_rightside2.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_attack_from_rightside3.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_block_to_leftside.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_block_to_rightside.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_dead_from_leftside.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_dead_from_rightside.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_falldown_to_leftside.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_falldown_to_rightside.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_hurt_at_leftside.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_hurt_at_rightside.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_jump_to_leftside.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_jump_to_rightside.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_run_to_leftside.png" />
+    <Image Include="resources\Samurai Commander\SamuraiCommander_run_to_rightside.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

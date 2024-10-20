@@ -1,32 +1,23 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include<memory>
-
-using namespace sf;
+#include <memory>
+#include "Animation.h"
 
 class Background
 {
 public:
 
-	float time;
+	Animator animator;
 
-	Clock time_clock;
-
-	bool is_time_set;
-
-	int stage;
-
-	int flip_x;
-
-	int flip_y;
-
-	Texture background;//-----------background texture bamboo forest
+	Spritesheet image;
 	
-	Sprite moon_bamboo_forest;
-	
-	Background(int stage);
+	sf::Sprite rendered_sprite;
 
-	void load_background_frames(int stage);
+	int fps;
+	
+	Background(const std::string& image_path, const sf::Vector2u& spritesheet_size, const int fps = 60);
+
+	void RENDER(sf::RenderWindow* window, const float& delta_time);
 
 };
 

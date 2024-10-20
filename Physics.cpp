@@ -1,1422 +1,770 @@
 #include "physics.h"
-#include "Fluids.h"
-#include <thread>
-#include <iostream>
 
-void Physics::setWindow(sf::RenderWindow* window) {
+Physics::Material::Material(const float& friction_coefficient, const float& youngs_modulus, const float& damping_ratio) :
 
-    this->window = window;
+    friction_coefficient(friction_coefficient),
+    youngs_modulus(youngs_modulus),
+    damping_ratio(damping_ratio) {
 
-}
+};
 
-void Physics::setFluids(std::shared_ptr<Fluids> fluids) {
+float Physics::Material::compute_spring_constant(const float& cross_section_area, const float& length_of_spring_at_rest) {//3D objects
 
-    this->fluids = fluids;
+    return (cross_section_area * this->youngs_modulus) / length_of_spring_at_rest;
+    
 
-}
+};
 
-float Physics::length(const sf::Vector2f& v) {
+float Physics::Material::compute_spring_constant(const float& length_of_spring_at_rest) {//2D objects
 
-    return std::sqrt(v.x * v.x + v.y * v.y);
+    return this->youngs_modulus / length_of_spring_at_rest;
 
-}
+};
 
-sf::Vector2f Physics::multiplyVectors(sf::Vector2f const& A, sf::Vector2f const& B) {
+float Physics::Material::compute_damping_coefficient(const float& spring_constant, const float& mass) {
 
-    float x = A.x * B.x;
+    return 2 * this->damping_ratio * std::sqrt(spring_constant * mass);
 
-    float y = A.y * B.y;
+};
 
-    return sf::Vector2f(x, y);
+float Physics::Material::to_GPa(const float& Pa) {
 
-}
+    return Pa / 1000000000.0f; // Correct: divides by 1 billion to convert Pa to GPa
 
-float Physics::dot(sf::Vector2f A, sf::Vector2f B) {
+};
 
-    return A.x * B.x + A.y * B.y;
+float Physics::Material::to_Pa(const float& GPa) {
 
-}
+    return GPa * 1000000000.0f;
 
-float Physics::cross(sf::Vector2f A, sf::Vector2f B) {
+};
 
-    return A.x * B.y - A.y * B.x;
+Physics::Material Physics::Material::iron() {
 
-}
+    return Material(0.6f, (210.0f), 0.05f);
 
-sf::Vector2f Physics::rotate(sf::Vector2f const& vector, float  const& angle) {
+};
 
-    float cosAngle = cos(angle);
+Physics::Material Physics::Material::wood() {
 
-    float sinAngle = sin(angle);
+    return Material(0.6f, (16.0f), 0.1f);
 
-    sf::Vector2f rotatedVector;
+};
 
-    rotatedVector.x = (vector.x * cosAngle) - (vector.y * sinAngle);
+Physics::Material Physics::Material::rubber() {
 
-    rotatedVector.y = (vector.x * sinAngle) + (vector.y * cosAngle);
+    return Material(0.8f, (1.0f), 0.5f);
 
-    return rotatedVector;
+};
 
-}
+Physics::Material Physics::Material::jello() {
 
-void Physics::create_border(bool is_horizontal, float length, float width, float x, float y) {
+    return Material(0.1f, (0.01f), 0.7f);
 
-    Physics::border Border;
+};
 
-    Border.length = length;
+Physics::Collision Physics::point_mass::find_collision(const point_mass& point) {
 
-    Border.width = width;
+    vec3 delta = this->position - point.position;
 
-    Border.is_horizontal = is_horizontal;
+    float distance = delta.magnitude();
 
-    Border.center = { x + length / 2, y + width / 2 };
+    float EPSILON = 1e-6;
 
-    /*if (!is_horizontal) {
+    if (distance < EPSILON) {
 
-        Border.center = { x + length / 2, y + width / 2 };
-
-    }*/
-
-    sf::RectangleShape rect;
-
-    rect.setSize({ Border.length, Border.width });
-
-    rect.setPosition(x, y);
-
-    rect.setFillColor(sf::Color(255, 0, 0, 50));
-
-    borders.emplace_back(Border);
-
-    rects.emplace_back(rect);
-
-}
-
-void Physics::create_planet(float radius, float x, float y) {
-
-    Physics::planet Planet;
-
-    Planet.radius = radius;
-
-    sf::Vector2f center = { x, y };
-
-    Planet.center = center;
-
-    sf::CircleShape circle(Planet.radius);
-
-    circle.setPosition(Planet.center.x - Planet.radius, Planet.center.y - Planet.radius);
-
-    circle.setFillColor(sf::Color(255, 0, 0, 50));
-
-    planets.emplace_back(Planet);
-
-    circles.emplace_back(circle);
-
-}
-
-void Physics::create_collider(float radius, float x, float y, sf::Vector2f velocity, sf::Color color, std::vector<point_mass>& points, std::vector<sf::CircleShape>& colliders) {
-
-    Physics::point_mass weighted_point;
-
-    weighted_point.velocity = velocity;
-
-    weighted_point.position = { x, y };
-
-    sf::CircleShape circle(radius);
-
-    circle.setPosition(x - radius, y - radius);
-
-    circle.setFillColor(color);
-
-    colliders.emplace_back(circle);
-
-    points.emplace_back(weighted_point);
-
-}
-
-void Physics::create_colliders_with_constraints(float radius1, float x1, float y1, sf::Vector2f velocity1, float radius2, float x2, float y2, sf::Vector2f velocity2, float distance, std::vector<point_mass>& points, std::vector<sf::CircleShape>& colliders, std::vector<distance_constraint>& constraints, std::vector<sf::ConvexShape>& Lines) {
-
-    Physics::distance_constraint constraint;
-
-    constraint.distance = distance;
-
-    create_collider(radius1, x1, y1, velocity1, sf::Color::Blue, points, colliders);
-
-    constraint.index0 = points.size() - 1;
-
-    create_collider(radius2, x2, y2, velocity2, sf::Color::Blue, points, colliders);
-
-    constraint.index1 = points.size() - 1;
-
-    constraint.Line.setPointCount(4);
-
-    constraint.Line.setPoint(0, { points[constraint.index0].position.x, points[constraint.index0].position.y - radius1 / 2 });
-
-    constraint.Line.setPoint(1, { points[constraint.index1].position.x, points[constraint.index1].position.y - radius2 / 2 });
-
-    constraint.Line.setPoint(2, { points[constraint.index0].position.x, points[constraint.index0].position.y + radius1 / 2 });
-
-    constraint.Line.setPoint(3, { points[constraint.index1].position.x, points[constraint.index1].position.y + radius1 / 2 });
-
-    constraint.Line.setFillColor(sf::Color::Blue);
-
-    constraints.emplace_back(constraint);
-
-    Lines.emplace_back(constraint.Line);
-
-}
-
-Physics::soft_body Physics::create_soft_body_automatic(Physics& physics, std::vector<sf::Vector2f>& vertices_positions, sf::Vector2f velocity, float radius, sf::Color const& color, std::vector<point_mass>& points, std::vector<sf::CircleShape>& colliders) {
-
-    Physics::soft_body body;
-
-    sf::Color C(color.r, color.g, color.b, 100);
-
-    body.shape.setFillColor(C);
-
-    int n_shape_points = 0;
-
-    float space_manager = radius * 3.55;// * 2.25 provides best simulation but causes big instabilities in various shapes due to overcrowding colliders/vertices
-                                        // * 3.55 provides the best stability
-
-    std::vector<int> sizes;
-
-    for (int i = 0; i < vertices_positions.size(); i++) {
-
-        int next_index = (i + 1) % vertices_positions.size();
-
-        float X = vertices_positions[next_index].x - vertices_positions[i].x;
-
-        float Y = vertices_positions[next_index].y - vertices_positions[i].y;
-
-        sf::Vector2f length(X, Y);
-
-        float distance = physics.length(length);
-
-        int n_points = distance / space_manager;
-
-        n_shape_points += n_points;
-
-        sizes.emplace_back(n_points);
-
-        std::cout << "length: " << distance << std::endl;
-
-        std::cout << "n_points: " << n_points << std::endl;
-
-        std::cout << "sizes: " << sizes[i] << std::endl;
+        return Collision{ {0,0}, 0 };
 
     }
+    else {
 
-    std::cout << "size of sizes: " << sizes.size() << std::endl;
+        float depth = this->radius + point.radius - distance;
 
-    std::cout << "total number of points on shape: " << n_shape_points << std::endl;
+        return Collision{ delta.normalize(), depth};
 
-    body.shape.setPointCount(n_shape_points);
+    };
 
-    int index = 0;
+};
 
-    int origin_index = 0;
+void Physics::point_mass::collide(point_mass& point, const float& point_elasticity, const float& elasticity) {
 
-    for (int i = 0; i < vertices_positions.size(); i++) {
-       
-        int next_index = (i + 1) % vertices_positions.size();
+    if (elasticity == 0.0f && point_elasticity == 0.0f) {//perfectly inelastic collision
 
-        std::cout << "Origin point " << i << " at coordinates: " << vertices_positions[i].x << ", " << vertices_positions[i].y << " has an edge with the next point; that consists of " << sizes[i] << " vertices/colliders\n" << std::endl;
-
-        for (int j = 0; j < sizes[i]; j++) {
-
-            Physics::soft_body::vertex vertex;
-
-            if (j == 0) {
-
-                vertex.position = vertices_positions[i];
-
-                physics.create_collider(radius, vertex.position.x, vertex.position.y, velocity, sf::Color::Yellow, points, colliders);
-
-                vertex.index = physics.points.size() - 1;
-
-                body.vertices.emplace_back(vertex);
-
-                body.shape.setPoint(index, vertex.position);
-
-                std::cout << "index here: " << index << " pos: " << vertex.position.x << ", "<< vertex.position.y << std::endl;
-
-                physics.all_soft_bodies_indices.emplace_back(vertex.index);
-
-                index++;
-
-            }
-
-            else {//VERY IMPORTANT NOTE: WE ADD OR SUBTRACT THE RADIUS FROM THE NEXTPOSITION SINCE THE POSITION REFERS TO THE CENTER OF THE COLLIDER AND NOT THE
-                   //USUAL ORIGIN POINT OF THE DRAWN CIRCLE. WE ALSO ADD OR SUBTRACT THE SPACEMANAGER FROM THE CURRENT COLLIDER POSITION SINCE ITS WHERE THE NEW
-                   //POINT POSITION SHOULD BE IF WE INDEED CREATED THE NEW COLLIDER
-
-                vertex.position = physics.points[physics.points.size() - 1].position;
-
-                if (vertices_positions[next_index].x - radius > vertex.position.x + space_manager) {
-
-                    vertex.position.x += space_manager;
-
-                }
-
-                else if (vertices_positions[next_index].x + radius < vertex.position.x - space_manager) {
-
-                    vertex.position.x -= space_manager;
-
-                }
-
-                if (vertices_positions[next_index].y + radius < vertex.position.y - space_manager) {
-
-                    vertex.position.y -= space_manager;
-
-                }
-
-                else if (vertices_positions[next_index].y - radius > vertex.position.y + space_manager) {
-
-                    vertex.position.y += space_manager;
-
-                }
-
-                if (vertices_positions[next_index] != vertex.position) {
-
-                    physics.create_collider(radius, vertex.position.x, vertex.position.y, velocity, color, points, colliders);
-
-                    vertex.index = physics.points.size() - 1;
-
-                    body.vertices.emplace_back(vertex);
-
-                    body.shape.setPoint(index, vertex.position);
-
-                    physics.all_soft_bodies_indices.emplace_back(vertex.index);
-
-                    index++;
-
-                }
-
-            }//else closing
-
-        }
+        vec3 momentum = (point.velocity * point.mass) + (this->velocity * this->mass);
+        this->velocity = momentum / (point.mass + this->mass);
+        point.velocity = this->velocity;
 
     }
+    else if (elasticity == 1.0f && point_elasticity == 1.0f) {//perfectly elastic collision. Moreover elasticity cannot actually be physically more than 1.0f, but to avoid edge cases we used >= 1.0f
 
-    //compute the center of mass
-    body.center = { 0.f ,0.f };
-    for (auto const& v : body.vertices) {
+        vec3 momentum = this->velocity * this->mass;
+        vec3 point_momentum = point.velocity * point.mass;
+        float total_mass = this->mass + point.mass;
 
-        body.center += physics.points[v.index].position;
+        //formula: final velocity1 = (mass1 - mass2)*initial velocity1 + 2(initial velocity2 * mass2)
+        float relative_mass = this->mass - point.mass;
+        vec3 coefficient = (this->velocity * relative_mass) + (point_momentum * 2);
+        this->velocity = coefficient / total_mass;
 
-    }
-
-    body.center /= (float)body.vertices.size();
-
-    for (auto& v : body.vertices) {
-
-        sf::Vector2f r = physics.points[v.index].position - body.center;
-
-        body.vectors_from_center.emplace_back(r);
-
-    }
-
-    for (auto& v : body.vertices) {
-
-        std::cout << "initial position of vertex " << v.index << " is " << v.position.x << ", " << v.position.y << std::endl;
+        //formula: final velocity2 = (mass2 - mass1)*initial velocity2 + 2(initial velocity1 * mass1)
+        relative_mass = point.mass - this->mass;
+        coefficient = (point.velocity * relative_mass) + (momentum * 2);
+        point.velocity = coefficient / total_mass;
 
     }
+    else {//general elastic collision => either both elasticities are between ]0,1[  or  one is 0.0f and the other is 1.0f. Moreover, the formula is the almost same as the perfectly elastic collision 
+
+        //vec3 momentum = this->velocity * this->mass;
+        //vec3 point_momentum = point.velocity * point.mass;
+        //float total_mass = this->mass + point.mass;
+
+        ////formula: final velocity1 = (mass1 - (elasticity2*mass2))*initial velocity1 + 2(initial velocity2 * mass2)
+        //float relative_mass = this->mass - (point_elasticity * point.mass);
+        //vec3 coefficient = (this->velocity * relative_mass) + (point_momentum * 2);
+        //this->velocity = coefficient / total_mass;
+
+        ////formula: final velocity2 = (mass2 - (elasticity1*mass1))*initial velocity2 + 2(initial velocity1 * mass1)
+        //relative_mass = point.mass - (elasticity * this->mass);
+        //coefficient = (point.velocity * relative_mass) + (momentum * 2);
+        //point.velocity = coefficient / total_mass;
+
+
+
+        //float total_mass = this->mass + point.mass;
+        //float E = point_elasticity;
+        //float coof = point_elasticity * point.mass;
+        //float relative_mass = this->mass - coof; 
+        //vec3 momentum_coof = (this->velocity * coof) * this->mass;
+        //vec3 coefficient = (this->velocity * relative_mass) + momentum_coof;
+        //this->velocity = coefficient / total_mass;
+
+        //E = elasticity;
+        //coof = elasticity * this->mass;
+        //relative_mass = point.mass - coof;
+        //momentum_coof = (point.velocity * coof) * point.mass;
+        //coefficient = (point.velocity * relative_mass) + momentum_coof;
+        //point.velocity = coefficient / total_mass;
+
+        float e = (elasticity + point_elasticity) / 2.0f;
+        float e2 = point_elasticity;
+        float e1 = elasticity;
+
+        float mass1 = this->mass;
+        float mass2 = point.mass;
+        float total_mass = mass1 + mass2;
+
+        vec3 v1 = this->velocity;
+        vec3 v2 = point.velocity;
+        vec3 momentum1 = v1 * mass1;
+        vec3 momentum2 = v2 * mass2;
+
+        vec3 collisionNormal = find_collision(point).normal;
+        float relativeVelocity = (v2 - v1).dot(collisionNormal);
+        if (relativeVelocity > 0) {
+
+            return;
+
+        };
+        
+        //final velocities using the elastic collision formulas
+       /* this->velocity.x = ((mass1 - mass2 * e1) * v1.x + (2 * mass2 * (1 + e1) * v2.x)) / total_mass;
+        this->velocity.y = ((mass1 - mass2 * e1) * v1.y + (2 * mass2 * (1 + e1) * v2.y)) / total_mass;
+        this->velocity.z = ((mass1 - mass2 * e1) * v1.z + (2 * mass2 * (1 + e1) * v2.z)) / total_mass;
+
+        point.velocity.x = ((mass2 - mass1 * e2) * v2.x + (2 * mass1 * (1 + e2) * v1.x)) / total_mass;      
+        point.velocity.y = ((mass2 - mass1 * e2) * v2.y + (2 * mass1 * (1 + e2) * v1.y)) / total_mass;    
+        point.velocity.z = ((mass2 - mass1 * e2) * v2.z + (2 * mass1 * (1 + e2) * v1.z)) / total_mass;*/
+
+        
+        float impulse = -(1 + e1) * relativeVelocity / total_mass;
+        vec3 impulseVector = collisionNormal * impulse;
+        this->velocity -= impulseVector * (mass2 / total_mass);
+
+        impulse = -(1 + e2) * relativeVelocity / total_mass;
+        impulseVector = collisionNormal * impulse;
+        point.velocity += impulseVector * (mass1 / total_mass);
+
+    };
+
+};
+
+vec3 Physics::point_mass::compute_spring_force(const vec3& anchor_pos, const float& length_of_spring_at_rest, const float& spring_constant) {
+
+    //getting the vector spanning from our anchor to our current position => this is the current vector resembeling our spring. NOTE: this vector contains both direction and magnitude
+    vec3 anchor_to_point = (this->position - anchor_pos);
+
+    //calculating the difference between our current spring length and the length of said spring at rest
+    float length_difference = anchor_to_point.magnitude() - length_of_spring_at_rest;
+  
+    //normalizing our current spring vector inorder to get purely its direction and using this formula: F = direction * -spring_constant * length_difference => we get the spring force
+    return anchor_to_point.normalize() * (-spring_constant * length_difference);
+
+};
+
+vec3 Physics::point_mass::compute_weight_force(const vec3& gravity) {
+
+    return gravity * this->mass;
+
+};
+
+vec3 Physics::point_mass::compute_friction_force(const point_mass& point, const float& friction_coefficient, const vec3& gravity) {
+
+    //friction pushes our point against the direction its trying to go to => friction direction = -direction of velocity
+    vec3 friction_direction = this->velocity.normalize() * -1;
+
+    //inorder to get the angle of the slope of which friction occurs between our points we need to find the vector between them and use the formula arctan(vec.z/vec.magnitude);
+    vec3 this_to_point = point.position - this->position;
+    float horizontal_distance = std::sqrt(this_to_point.x * this_to_point.x + this_to_point.y * this_to_point.y);
+    float angle_of_slope = atan2(this_to_point.z, horizontal_distance);
+    vec3 normal_force = gravity * this->mass * cos(angle_of_slope);//normal force = weight * cos(angle of slope)
+
+    //using this formula: friction force = friction_direction * friction coefficient * normal force
+    vec3 friction_force = friction_direction * normal_force * friction_coefficient;
+    vec3 weight_down_slope = (gravity * this->mass).magnitude() * sin(angle_of_slope);//weight_down_slope returns how does the object rotate down on our slope due to gravity
+    return weight_down_slope - friction_force;
+
+};
+
+vec3 Physics::point_mass::compute_damping_force(const float& damping_coefficient, const float& max_damping_force) {
+
+    vec3 damping_force = this->velocity * -damping_coefficient;
+
+    if (damping_force.magnitude() > max_damping_force) {
+
+        damping_force = damping_force.normalize() * max_damping_force;
+
+    };
+
+    return damping_force;
+
+};
+
+void Physics::point_mass::add_force(const vec3& force, const float& delta_time) {
+
+    this->net_force += force * delta_time;
+
+};
+
+void Physics::point_mass::apply_forces(const float& delta_time) {
+
+    vec3 acceleration = this->net_force / this->mass;
+    this->velocity += acceleration * delta_time;
+    this->position += this->velocity * delta_time;
+
+};
+
+void Physics::point_mass::reset_forces() {
+
+    this->net_force = { 0, 0, 0 };//the z-coord value here is 0 and not 1 since net_force vector resembles physics forces and their values, not graphical values or directions.  
+
+};
+
+Physics::point_mass::point_mass(const vec3& position, const vec3& velocity, const float& radius, const float& mass) : 
+    
+    position(position), velocity(velocity), mass(mass), radius(radius) {
+
+};
+
+void Physics::Body::print_debug_information() {
+
+     for (auto& point : this->points) {
+
+        std::cout << "initial position of vertex " << point.index << " is " << point.position.x << ", " << point.position.y << std::endl;
+
+    };
 
     int i = 0;
-    for (auto& p : physics.points) {
+    for (auto& p : this->points) {
 
         std::cout << "initial position of mass point " << i << " is " << p.position.x << ", " << p.position.y << std::endl;
         i++;
 
     }
 
-    for (int i = 0; i < body.shape.getPointCount(); i++) {
+    for (int i = 0; i < this->frame.getPointCount(); i++) {
 
-        std::cout << "initial position of soft body point " << i << " is " << body.shape.getPoint(i).x << ", " << body.shape.getPoint(i).y << std::endl;
-
-    }
-
-    std::cout << "V size: " << body.vertices.size() << std::endl;
-    std::cout << "P size: " << physics.points.size() << std::endl;
-    std::cout << "Shape size: " << body.shape.getPointCount() << std::endl;
-
-    physics.soft_bodies_shapes.emplace_back(body.shape);
-
-    physics.soft_bodies.emplace_back(body);
-
-    return body;
-
-}
-
-//Physics::soft_body create_soft_body_automatic(Physics& physics, std::vector<sf::Vector2f>& vertices_positions, sf::Vector2f velocity, float radius, sf::Color const& color) {
-//
-//    Physics::soft_body body;
-//
-//    sf::Color C(color.r, color.g, color.b, 100);
-//
-//    body.shape.setFillColor(C);
-//
-//    int n_shape_points = 0;
-//
-//    float space_manager = radius * 2.25;
-//
-//    std::vector<int> sizes;
-//
-//    std::vector<std::vector<int>> diagonal_sizes;
-//
-//    int d_sizes = 0;
-//
-//    for (int i = 0; i < vertices_positions.size(); i++) {
-//
-//        int next_index = (i + 1) % vertices_positions.size();
-//
-//        float X = vertices_positions[next_index].x - vertices_positions[i].x;
-//
-//        float Y = vertices_positions[next_index].y - vertices_positions[i].y;
-//
-//        sf::Vector2f length(X, Y);
-//
-//        float distance = physics.length(length);
-//
-//        int n_points = distance / space_manager;
-//
-//        n_shape_points += n_points;
-//
-//        sizes.emplace_back(n_points);
-//
-//        std::cout << "length: " << distance << std::endl;
-//
-//        std::cout << "n_points: " << n_points << std::endl;
-//
-//        std::cout << "sizes: " << sizes[i] << std::endl;
-//
-//        /////////////////////////////////////////////
-//
-//        X = vertices_positions[next_index].x - vertices_positions[i].x;
-//
-//        Y = vertices_positions[next_index].y - vertices_positions[i].y;
-//
-//        distance = physics.length(length);
-//
-//        int base = distance / space_manager;
-//
-//        ////////////////////////
-//
-//        X = body.center.x - vertices_positions[next_index].x;
-//
-//        Y = body.center.y - vertices_positions[next_index].y;
-//
-//        distance = physics.length(length);
-//
-//        int from_next_index_to_center = distance / space_manager;
-//
-//        ////////////////////////
-//
-//        X = vertices_positions[i].x - body.center.x;
-//
-//        Y = vertices_positions[i].y - body.center.y;
-//
-//        distance = physics.length(length);
-//
-//        int from_center_to_index = distance / space_manager;
-//
-//        diagonal_sizes.emplace_back(std::vector<int> { base, from_center_to_index, from_next_index_to_center });
-//
-//        d_sizes += base + from_center_to_index + from_next_index_to_center;
-//
-//    }
-//
-//    std::cout << "size of sizes: " << sizes.size() << std::endl;
-//
-//    std::cout << "total number of points on shape: " << n_shape_points << std::endl;
-//
-//    body.shape.setPointCount(n_shape_points);
-//
-//   // body.inner_diagonals_of_shape.resize(d_sizes);
-//
-//    int index = 0;
-//
-//    int origin_index = 0;
-//
-//    for (int i = 0; i < vertices_positions.size(); i++) {
-//       
-//        int next_index = (i + 1) % vertices_positions.size();
-//
-//        for (int j = 0; j < sizes[i]; j++) {
-//
-//            Physics::soft_body::vertex vertex;
-//
-//            if (j == 0) {
-//
-//                vertex.position = vertices_positions[i];
-//
-//                create_collider(physics, radius, vertex.position.x, vertex.position.y, velocity, sf::Color::Yellow);
-//
-//                vertex.index = physics.points.size() - 1;
-//
-//                body.vertices.emplace_back(vertex);
-//
-//                body.shape.setPoint(index, vertex.position);
-//
-//                std::cout << "index here: " << index << " pos: " << vertex.position.x << ", "<< vertex.position.y << std::endl;
-//
-//                all_soft_bodies_indices.emplace_back(vertex.index);
-//
-//                index++;
-//
-//            }else {//VERY IMPORTANT NOTE: WE ADD OR SUBTRACT THE RADIUS FROM THE NEXTPOSITION SINCE THE POSITION REFERS TO THE CENTER OF THE COLLIDER AND NOT THE
-//                   //USUAL ORIGIN POINT OF THE DRAWN CIRCLE. WE ALSO ADD OR SUBTRACT THE SPACEMANAGER FROM THE CURRENT COLLIDER POSITION SINCE ITS WHERE THE NEW
-//                   //POINT POSITION SHOULD BE IF WE INDEED CREATED THE NEW COLLIDER
-//
-//                vertex.position = physics.points[physics.points.size() - 1].position;
-//
-//                if (vertices_positions[next_index].x - radius > vertex.position.x + space_manager) {
-//
-//                    vertex.position.x += space_manager;
-//
-//                }
-//
-//                else if (vertices_positions[next_index].x + radius < vertex.position.x - space_manager) {
-//
-//                    vertex.position.x -= space_manager;
-//
-//                }
-//
-//                if (vertices_positions[next_index].y + radius < vertex.position.y - space_manager) {
-//
-//                    vertex.position.y -= space_manager;
-//
-//                }
-//
-//                else if (vertices_positions[next_index].y - radius > vertex.position.y + space_manager) {
-//
-//                    vertex.position.y += space_manager;
-//
-//                }
-//
-//                if (vertices_positions[next_index] != vertex.position) {
-//
-//                    create_collider(physics, radius, vertex.position.x, vertex.position.y, velocity, color);
-//
-//                    vertex.index = physics.points.size() - 1;
-//
-//                    body.vertices.emplace_back(vertex);
-//
-//                    body.shape.setPoint(index, vertex.position);
-//
-//                    all_soft_bodies_indices.emplace_back(vertex.index);
-//
-//                    index++;
-//
-//                }
-//
-//            }//else closing
-//
-//        }
-//
-//    }
-//
-//    // compute the center of mass
-//    body.center = { 0.f ,0.f };
-//    for (auto const& v : body.vertices) {
-//
-//        body.center += physics.points[v.index].position;
-//
-//    }
-//
-//    body.center /= (float)body.vertices.size();
-//
-//    for (auto& v : body.vertices) {
-//
-//        sf::Vector2f r = physics.points[v.index].position - body.center;
-//
-//        body.vectors_from_center.emplace_back(r);
-//
-//    }
-//
-//    for (auto& v : body.vertices) {
-//
-//        std::cout << "initial position of vertex " << v.index << " is " << v.position.x << ", " << v.position.y << std::endl;
-//
-//    }
-//
-//    int i = 0;
-//    for (auto& p : points) {
-//
-//        std::cout << "initial position of mass point " << i << " is " << p.position.x << ", " << p.position.y << std::endl;
-//        i++;
-//
-//    }
-//
-//    for (int i = 0; i < body.shape.getPointCount(); i++) {
-//
-//        std::cout << "initial position of soft body point " << i << " is " << body.shape.getPoint(i).x << ", " << body.shape.getPoint(i).y << std::endl;
-//
-//    }
-//
-//    std::cout << "V size: " << body.vertices.size() << std::endl;
-//    std::cout << "P size: " << physics.points.size() << std::endl;
-//    std::cout << "Shape size: " << body.shape.getPointCount() << std::endl;
-//
-//    soft_bodies_shapes.emplace_back(body.shape);
-//
-//    soft_bodies.emplace_back(body);
-//
-//    ///////////////////////////////
-//
-//    index = 0;
-//    for (int i = 0; i < vertices_positions.size(); i++) {
-//
-//        int next_index = (i + 1) % vertices_positions.size();
-//
-//        for (int k = 1; k < 3; k++) {
-//
-//            for (int j = 0; j < diagonal_sizes[i][k]; j++) {
-//
-//                Physics::soft_body::vertex vertex;
-//
-//                sf::Vertex V;
-//
-//                V.color = C;
-//
-//                if (j == 0) {
-//
-//                    vertex.position = vertices_positions[i];
-//
-//                    create_collider(physics, radius, vertex.position.x, vertex.position.y, velocity, sf::Color::Yellow);
-//
-//                    vertex.index = physics.points.size() - 1;
-//
-//                    //body.vertices.emplace_back(vertex);
-//
-//                    V.position = vertex.position;
-//
-//                   // body.inner_diagonals_of_shape[index].position = vertex.position;
-//
-//                    body.inner_diagonals_of_shape.append(V);
-//
-//                    std::cout << "index here: " << index << " pos: " << vertex.position.x << ", " << vertex.position.y << std::endl;
-//
-//                    // all_soft_bodies_indices.emplace_back(vertex.index);
-//
-//                    index++;
-//
-//                }
-//                else {//VERY IMPORTANT NOTE: WE ADD OR SUBTRACT THE RADIUS FROM THE NEXTPOSITION SINCE THE POSITION REFERS TO THE CENTER OF THE COLLIDER AND NOT THE
-//                    //USUAL ORIGIN POINT OF THE DRAWN CIRCLE. WE ALSO ADD OR SUBTRACT THE SPACEMANAGER FROM THE CURRENT COLLIDER POSITION SINCE ITS WHERE THE NEW
-//                    //POINT POSITION SHOULD BE IF WE INDEED CREATED THE NEW COLLIDER
-//
-//                    vertex.position = physics.points[physics.points.size() - 1].position;
-//
-//                    if (body.center.x - radius > vertex.position.x + space_manager) {
-//
-//                        vertex.position.x += space_manager;
-//
-//                    }
-//
-//                    else if (body.center.x + radius < vertex.position.x - space_manager) {
-//
-//                        vertex.position.x -= space_manager;
-//
-//                    }
-//
-//                    if (body.center.y + radius < vertex.position.y - space_manager) {
-//
-//                        vertex.position.y -= space_manager;
-//
-//                    }
-//
-//                    else if (body.center.y - radius > vertex.position.y + space_manager) {
-//
-//                        vertex.position.y += space_manager;
-//
-//                    }
-//
-//                    if (body.center != vertex.position) {
-//
-//                        create_collider(physics, radius, vertex.position.x, vertex.position.y, velocity, color);
-//
-//                            vertex.index = physics.points.size() - 1;
-//
-//                            //body.vertices.emplace_back(vertex);
-//
-//                            V.position = vertex.position;
-//
-//                            // body.inner_diagonals_of_shape[index].position = vertex.position;
-//
-//                            body.inner_diagonals_of_shape.append(V);
-//
-//                            //all_soft_bodies_indices.emplace_back(vertex.index);
-//
-//                            index++;
-//
-//                    }
-//
-//                }//else closing
-//
-//            }
-//
-//        }
-//
-//    }
-//
-//    return body;
-//
-//}
-
-Physics::collision Physics::find_collision(sf::Vector2f const& position) {
-
-    return collision{ sf::Vector2f{0.f, 1.f}, -position.y };
-
-}//collision
-
-Physics::collision Physics::find_collision(sf::Vector2f const& position, planet const& planet) {
-
-    sf::Vector2f delta = position - planet.center;
-
-    float distance = length(delta);
-
-    sf::Vector2f normal = delta / distance;
-
-    float depth = planet.radius - distance;
-
-    return collision{ normal, depth };
-
-}//collision with a planet(static round object)
-
-Physics::collision Physics::find_collision(const point_mass& p1, const point_mass& p2, float radius1, float radius2) {
-
-    sf::Vector2f delta = p1.position - p2.position;
-
-    float EPSILON = 1e-6;
-
-    float distance = length(delta);
-
-    if (distance < EPSILON) {
-
-        return collision{ {0,0}, 0 };
+        std::cout << "initial position of soft body point " << i << " is " << this->frame.getPoint(i).x << ", " << this->frame.getPoint(i).y << std::endl;
 
     }
 
-    sf::Vector2f normal = delta / distance;
-
-    float depth = radius1 + radius2 - distance;
-
-    return collision{ normal, depth };
-
-}//wit other points
-
-Physics::collision Physics::find_collision(sf::Vector2f const& position, border const& rect) {
-
-    sf::Vector2f rectPoint = { position.x, rect.center.y };
-
-    if (!rect.is_horizontal) {
-
-        rectPoint = { rect.center.x, position.y };
-
-    }
-
-    sf::Vector2f delta = position - rectPoint;
-
-    float distance = length(delta);
-
-    sf::Vector2f normal = delta / distance;
-
-    float depth = rect.width / 2 - distance;
-
-    if (!rect.is_horizontal) {
-
-        depth = rect.length / 2 - distance;
-
-    }
-
-    return collision{ normal, depth };
-
-}//collision with a border(static rectangle object)
-
-Physics::collision Physics::find_collision(sf::Vector2f const& position, std::vector<planet> const& planets) {
-
-    collision result = { sf::Vector2f(0.f, 0.f), -std::numeric_limits<float>::infinity() };
-
-    for (const auto& planet : planets) {
-
-        sf::Vector2f delta = position - planet.center;
-
-        float distance = length(delta);
-
-        sf::Vector2f normal = delta / distance;
-
-        float depth = planet.radius - distance;
-
-        // Check if the current collision has a larger penetration depth than the current result
-        if (depth > result.depth) {
-
-            // Update the result with the current collision
-            result = { normal , depth };
-
-        }
-
-    }
-
-    return result;
-
-}//collision with multiple planets(static round objects)
-
-Physics::collision Physics::find_collision(sf::Vector2f const& position, std::vector<border> const& borders) {
-
-    collision result = { sf::Vector2f(0.f, 0.f), -std::numeric_limits<float>::infinity() };
-
-    for (const auto& border : borders) {
-
-        sf::Vector2f rectPoint = { position.x, border.center.y };
-
-        if (!border.is_horizontal) {
-
-            rectPoint = { border.center.x, position.y };
-
-        }
-
-        sf::Vector2f delta = position - rectPoint;
-
-        float distance = length(delta);
-
-        sf::Vector2f normal = delta / distance;
-
-        float depth = border.width / 2 - distance;//
-
-        if (!border.is_horizontal) {
-
-            depth = border.length / 2 - distance;
-
-        }
-
-        // Check if the current collision has a larger penetration depth than the current result
-        if (depth > result.depth) {
-
-            // Update the result with the current collision
-            result = { normal , depth };
-
-        }
-
-    }
-
-    return result;
-
-}//collision with multiple borders(static rectangle objects)
-
-void Physics::update_gravity_and_positions(float dt, std::vector<point_mass>& points) {
-
-        for (auto& p : points) {
-
-            p.velocity += gravity * dt;
-
-        }
-
-        for (auto& p : points) {
-
-            p.position += p.velocity * dt;
-
-        }
+    std::cout << "point_mass count: " << this->points.size() << std::endl;
+    std::cout << "convex shape points count: " << this->frame.getPointCount() << std::endl;
+    std::cout << "number of center-to-point vectors: " << this->center_to_point_length.size() << std::endl;
 
 };
 
-void Physics::update(float dt, planet const& myPlanet, std::vector<point_mass>& points) {
+void Physics::Body::update_center() {
 
-    for (auto& p : points) {
+    this->center = { 0, 0, 1 };
+    for (auto const& point : this->points) {
 
-        p.velocity += gravity * dt;
+        this->center += points[point.index].position;
 
-    }
+    };
 
-    for (auto& p : points) {
+    this->center /= (float)this->points.size();
 
-        p.position += p.velocity * dt;
+};
 
-    }
+vec3 Physics::Body::get_bounds() {
 
-    for (auto& p : points) {
+    vec3 start_pos = this->points[0].position;
+    vec3 end_pos = start_pos;
+    for (auto& point : this->points) {
 
-        // collision c = find_collision(p.position);
-        collision c = find_collision(p.position, myPlanet);
+        if (point.position.x < start_pos.x) {
 
-        // check if collision took place
-        if (c.depth < 0.f) continue;
+            start_pos.x = point.position.x;
 
-        // resolve the constraint
-        p.position += c.normal * c.depth;
+        };
+        if (point.position.x > end_pos.x) {
 
-        // compute the normal & tangential velocity
-        auto vn = c.normal * dot(c.normal, p.velocity);
-        auto vt = p.velocity - vn;
+            end_pos.x = point.position.x;
 
-        // apply bouncing
-        vn = multiplyVectors(-elasticity, vn);
+        };
 
-        // apply friction
-        vt.x *= std::expf(-friction.x * dt);
+        if (point.position.y < start_pos.y) {
 
-        vt.y *= std::expf(-friction.y * dt);
+            start_pos.y = point.position.y;
 
-        // add up the new velocity
-        p.velocity = vn + vt;
-    }
+        };
+        if (point.position.y > end_pos.y) {
 
-}//updating on a planet
+            end_pos.y = point.position.y;
 
-void Physics::update(float dt, border const& rect, std::vector<point_mass>& points)
-{
-    for (auto& p : points) {
+        };
 
-        p.velocity += gravity * dt;
+        if (point.position.z < start_pos.z) {
 
-    }
+            start_pos.z = point.position.z;
 
-    for (auto& p : points) {
+        };
+        if (point.position.z > end_pos.z) {
 
-        p.position += p.velocity * dt;
+            end_pos.z = point.position.z;
 
-    }
+        };
 
-    for (auto& p : points) {
+    };
 
-        // collision c = find_collision(p.position);
-        collision c = find_collision(p.position, rect);
+    vec3 distance = end_pos - start_pos;
+    if (distance.x < 0) {
 
-        // check if collision took place
-        if (c.depth < 0.f) continue;
+        distance.x *= -1;
 
-        // resolve the constraint
-        p.position += c.normal * c.depth;
+    };
+    if (distance.y < 0) {
 
-        // compute the normal & tangential velocity
-        auto vn = c.normal * dot(c.normal, p.velocity);
-        auto vt = p.velocity - vn;
+        distance.y *= -1;
 
-        // apply bouncing
-        vn = multiplyVectors(-elasticity, vn);
+    };
+    if (distance.z < 0) {
 
-        // apply friction
-        vt.x *= std::expf(-friction.x * dt);
+        distance.z *= -1;
 
-        vt.y *= std::expf(-friction.y * dt);
+    };
 
-        // add up the new velocity
-        p.velocity = vn + vt;
-    }
+    return distance;//x is length, y is width, z is depth
 
+};
 
-}//updating on a border
+vec3 Physics::Body::get_position() {
 
-void Physics::update_planets(float dt, std::vector<planet> const& planets, std::vector<point_mass>& points)
-{
+    return vec3(this->center.x, this->center.y);
 
-    for (auto& p : points) {
+};
 
-        // collision c = find_collision(p.position);
-        collision c = find_collision(p.position, planets);
+void Physics::Body::set_position(const vec3& position) {
 
-        // check if collision took place
-        if (c.depth < 0.f) continue;
+    vec3 center_difference(position - this->center);
+    mat4 translation_matrix = create_translation_matrix(center_difference);
+    for (auto& point : this->points) {
 
-        // resolve the constraint
-        p.position += c.normal * c.depth;
+        vec4 new_pos = translation_matrix * point.position;
+        point.position = { new_pos.x, new_pos.y, new_pos.z };
+        this->frame.setPoint(point.index, { point.position.x, point.position.y });
+        
+    };
 
-        // compute the normal & tangential velocity
-        auto vn = c.normal * dot(c.normal, p.velocity);
-        auto vt = p.velocity - vn;
+    this->update_center();
 
-        // apply bouncing
-        vn = multiplyVectors(-elasticity, vn);
+};
 
-        // apply friction
-        vt.x *= std::expf(-friction.x * dt);
+void Physics::Body::rotate(const vec3& rotation_vector) {
 
-        vt.y *= std::expf(-friction.y * dt);
+    vec3 original_pos = this->get_position();
+    this->set_position({ 0, 0, 1 });//translating to a different coord so we can return to our original coords after rotation => hence having done a rotation around our object's origin
 
-        // add up the new velocity
-        p.velocity = vn + vt;
+    mat4 rotation_matrix = create_rotation_matrix(rotation_vector.x, rotation_vector.y, rotation_vector.z);
+    for (auto& point : this->points) {
 
-    }
+        vec4 new_pos = rotation_matrix * point.position;
+        point.position = { new_pos.x, new_pos.y, new_pos.z };
+        this->frame.setPoint(point.index, { point.position.x, point.position.y });
 
-}//updating on multiple planets
+    };
 
-void Physics::update_borders(float dt, std::vector<border> const& borders, std::vector<point_mass>& points)
-{
+    this->set_position(original_pos);
+    this->update_center();
 
-    for (auto& p : points) {
+};
 
-        // collision c = find_collision(p.position);
-        collision c = find_collision(p.position, borders);
+float Physics::Body::calculate_total_mass() {
 
-        // check if collision took place
-        if (c.depth < 0.f) continue;
+    float mass = 0.0f;
+    for (const auto& point : this->points) {
 
-        // resolve the constraint
-        p.position += c.normal * c.depth;
+        mass += point.mass;
 
-        // compute the normal & tangential velocity
-        auto vn = c.normal * dot(c.normal, p.velocity);
-        auto vt = p.velocity - vn;
+    };
 
-        // apply bouncing
-        vn = multiplyVectors(-elasticity, vn);
+    return mass;
 
-        // apply friction
-        vt.x *= std::expf(friction.x * dt);
+};
 
-        vt.y *= std::expf(-friction.y * dt);
+Physics::Body::Body(const std::vector<vec3>& positions, const Material& material, const float& mass, const float& radius, const vec3& velocity) : material(material), mass(mass) {
 
-        // add up the new velocity
-        p.velocity = vn + vt;
+    int total_points = 0;
 
-    }
+    float space_manager = radius * 3.55f;// * 2.25 provides best simulation but causes big instabilities in various shapes due to overcrowding colliders/vertices
+                                                 // * 3.55 provides the best stability
 
-}//updating on multiple borders
+    std::vector<int> sizes;
 
-void Physics::update_colliders(float dt, std::vector<point_mass>& points, std::vector<sf::CircleShape>& colliders) {
+    for (int i = 0; i < positions.size(); ++i) {
 
-    for (int i = 0; i < points.size(); i++) {
+        int next_index = (i + 1) % positions.size();
 
-        for (int j = i + 1; j < points.size(); j++) {
+        float X = positions[next_index].x - positions[i].x;
 
-            float radius1 = colliders[i].getRadius();
+        float Y = positions[next_index].y - positions[i].y;
 
-            float radius2 = colliders[j].getRadius();
+        vec3 length(X, Y);
 
-            collision c = find_collision(points[i], points[j], radius1, radius2);
+        float distance = length.magnitude();
 
-            // Check if collision took place
-            if (c.depth < 0.f) continue;
+        int n_points = distance / space_manager;
 
-            //std::cout << "depth: " << c.depth << std::endl;
+        total_points += n_points;
 
-            // Resolve the constraint for both colliders
-            points[i].position += c.normal * (c.depth / 2);
+        sizes.emplace_back(std::move(n_points));
 
-            points[j].position -= c.normal * (c.depth / 2);
+    };
 
-            // Compute relative velocity
-            sf::Vector2f relativeVelocity = points[j].velocity - points[i].velocity;
+    this->frame.setPointCount(total_points);
 
-            // Compute the normal component of relative velocity
-            float vn =dot(c.normal, relativeVelocity);
+    float mass_per_point = this->mass / total_points;
 
-            // Compute impulse
-            float restitution = elasticity.x;  // Adjust as needed
+    for (int i = 0; i < positions.size(); i++) {
 
-            float k = -(1 + restitution) * vn / (1 / points[i].mass + 1 /points[j].mass);
+        int next_index = (i + 1) % positions.size();
 
-             //Apply impulse to update velocities
-            points[i].velocity -= (k / points[i].mass) * c.normal;
+        //std::cout << "Origin point " << i << " at coordinates: " << positions[i].x << ", " << positions[i].y << " has an edge with the next point; that consists of " << sizes[i] << " vertices/colliders\n" << std::endl;
 
-            points[j].velocity += (k / points[j].mass) * c.normal;
+        for (int j = 0; j < sizes[i]; j++) {
 
-            // Apply friction
-            float frictionCoefficient = 0.2f;  // Adjust as needed
+            if (j == 0) {
 
-            auto tangent = relativeVelocity - vn * c.normal;
-
-            auto vt = length(tangent);
-
-            if (vt > 0.0f) {
-
-                auto friction = std::min(frictionCoefficient * std::fabs(k), vt) * (tangent / vt);  // Corrected line
-
-                points[i].velocity -= (friction / points[i].mass);
-
-                points[j].velocity += (friction / points[j].mass);
+                this->points.emplace_back(positions[i], velocity, radius, mass_per_point);
+                this->points[this->points.size() - 1].index = this->points.size() - 1;
+                this->frame.setPoint(this->points.size() - 1, sf::Vector2f(this->points[this->points.size() - 1].position.x, this->points[this->points.size() - 1].position.y));
 
             }
 
-        }
+            else {//VERY IMPORTANT NOTE: WE ADD OR SUBTRACT THE RADIUS FROM THE NEXTPOSITION SINCE THE POSITION REFERS TO THE CENTER OF THE COLLIDER AND NOT THE
+                //USUAL ORIGIN POINT OF THE DRAWN CIRCLE. WE ALSO ADD OR SUBTRACT THE SPACEMANAGER FROM THE CURRENT COLLIDER POSITION SINCE ITS WHERE THE NEW
+                //POINT POSITION SHOULD BE IF WE INDEED CREATED THE NEW COLLIDER
 
-    }
+                point_mass point = point_mass(this->points[this->points.size() - 1].position, velocity, radius, mass_per_point);
 
-}
+                if (positions[next_index].x - radius > point.position.x + space_manager) {
 
-void Physics::update_constraints(float dt, std::vector<point_mass>& points, std::vector<distance_constraint>& constraints) {
+                    point.position.x += space_manager;
 
-    for (auto& c : constraints) {
+                }
+                else if (positions[next_index].x + radius < point.position.x - space_manager) {
 
-        auto p0 = points[c.index0].position;
+                    point.position.x -= space_manager;
 
-        auto p1 = points[c.index1].position;
+                };
 
-        auto& v0 = points[c.index0].velocity;
+                if (positions[next_index].y + radius < point.position.y - space_manager) {
 
-        auto& v1 = points[c.index1].velocity;
+                    point.position.y -= space_manager;
 
-        auto delta = p1 - p0;
+                }
+                else if (positions[next_index].y - radius > point.position.y + space_manager) {
 
-        auto distance = length(delta);
+                    point.position.y += space_manager;
 
-        auto direction = delta / distance;
+                };
 
-        auto required_delta = direction * c.distance;
+              // if (point.position == positions[next_index]) {
+                   // std::cout << "alive" << std::endl;
+                                       
+                    this->points.emplace_back(std::move(point));
+                    this->points[this->points.size() - 1].index = this->points.size() - 1;
+                    this->frame.setPoint(this->points.size() - 1, sf::Vector2f(this->points[this->points.size() - 1].position.x, this->points[this->points.size() - 1].position.y));
 
-        auto force = spring_force * (required_delta - delta);
-
-        v0 -= force * dt;
-
-        v1 += force * dt;
-
-        auto vrel = dot(v1 - v0, direction);
-
-        auto damping_factor = exp(-spring_damping * dt);
-
-        auto new_vrel = vrel * damping_factor;
-
-        auto vrel_delta = new_vrel - vrel;
-
-        v0.x -= vrel_delta / 2.0;
-
-        v0.y -= vrel_delta / 2.0;
-
-        v1.x += vrel_delta / 2.0;
-
-        v1.y += vrel_delta / 2.0;
-
-    }
-
-}//updating on constraints
-
-void Physics::update_soft_bodies(float dt, std::vector<point_mass>& points) {
-
-    for (auto& b : soft_bodies)
-    {
-        // compute the center of mass
-        b.center = { 0, 0 };
-
-        for (auto const& v : b.vertices) {
-
-            b.center += points[v.index].position;
-
-        }
-
-        b.center /= (float)b.vertices.size();
-
-        // compute the shape rotation angle
-        float A = 0.f, B = 0.f;
-
-        int i = 0;
-        for (auto& v : b.vertices) {
-
-            sf::Vector2f r = v.position - b.center;
-
-            A += dot(b.vectors_from_center[i], r);
-
-            B += cross(b.vectors_from_center[i], r);
-
-            //std::cout << "A: " << A << " | " << "B: " << B << std::endl;
-
-            i++;
-
-        }
-
-        float angle = -atan2(B, A);
-
-        // apply spring forces
-        i = 0;
-        for (auto& v : b.vertices) {
-
-            auto damping_factor = exp(-spring_damping * dt);
-
-            sf::Vector2f target = b.center + rotate(b.vectors_from_center[i], angle);
-
-            sf::Vector2f delta = target - points[v.index].position;
-
-            points[v.index].velocity *= damping_factor;
-
-            points[v.index].velocity += spring_force * delta * dt;
-
-            i++;
-
-        }
-
-    }
-
-}
-
-void Physics::UPDATE(float dt, std::vector<planet> const& planets, std::vector<border> const& borders, std::vector<point_mass>& points, std::vector<sf::CircleShape>& colliders, std::vector<distance_constraint>& constraints) {
-
-        const int numSubsteps = 1; // Adjust the number of substeps
-
-        float substepDt = dt / numSubsteps;
-
-        for (int i = 0; i < numSubsteps; i++) {
-
-            update_gravity_and_positions(substepDt, points);
-
-            update_colliders(substepDt, points, colliders);
-
-            update_constraints(substepDt, points, constraints);
-
-            update_soft_bodies(substepDt, points);
-
-            update_borders(substepDt, borders, points);
-
-            update_planets(substepDt, planets, points);
-
-        }
-
-}
-
-void Physics::render_soft_bodies(std::vector<point_mass>& points) {
-
-
-    for (int i = 0; i < soft_bodies.size(); i++) {
-
-        window->draw(soft_bodies_shapes[i]);
-
-        for (int j = 0; j < soft_bodies[i].vertices.size(); j++) {
-
-            soft_bodies_shapes[i].setPoint(j, { points[soft_bodies[i].vertices[j].index].position.x, points[soft_bodies[i].vertices[j].index].position.y });
-
-        }
-
-    }
-
-}
-
-void Physics::render_colliders(std::vector<point_mass>& points, std::vector<sf::CircleShape>& colliders) {
-
-    for (int i = 0; i < colliders.size(); i++) {
-
-        colliders[i].setPosition(points[i].position);
-
-        window->draw(colliders[i]);
-
-    }
-
-    /*for (int i = 0; i < colliders.size(); i++) {
-
-        if (all_soft_bodies_indices.empty()) {
-
-            window->draw(colliders[i]);
-
-        }
-
-        else {
-
-            int index = i % all_soft_bodies_indices.size();
-
-            if (all_soft_bodies_indices[index] != i) {
-
-                window->draw(colliders[i]);
+               //};
 
             }
 
-        }
+        };
 
-    }*/
+    };
 
-}
+    vec3 center_to_point;
+    update_center();
+    for (int i = 0; i < this->points.size(); ++i) {
 
-void Physics::render_constraints(std::vector<point_mass>& points, std::vector<distance_constraint>& constraints, std::vector<sf::ConvexShape>& Lines) {
+        center_to_point = this->points[i].position - this->center;
+        this->center_to_point_length.emplace_back(center_to_point.magnitude());
 
-    int i = 0;
+    };
+    
+    print_debug_information();
 
-    for (auto& line : Lines) {
+};
 
-        window->draw(line);
+Physics::Collision Physics::Body::find_collision(const Body& body) {
 
-        line.setPoint(0, { points[constraints[i].index0].position.x, points[constraints[i].index0].position.y - 1 });
+    for (auto& point : this->points) {
 
-        line.setPoint(1, { points[constraints[i].index1].position.x, points[constraints[i].index1].position.y - 1 });
+        for (auto& other_point : body.points) {
 
-        line.setPoint(2, { points[constraints[i].index0].position.x, points[constraints[i].index0].position.y + 1 });
+            if (point.find_collision(other_point).depth > 0.0f) {
 
-        line.setPoint(3, { points[constraints[i].index1].position.x, points[constraints[i].index1].position.y + 1 });
+                return point.find_collision(other_point);
 
-        i++;
+            };
 
-    }
+        };
 
-}
+    };
 
-//void Physics::render_lines() {
-//
-//    for (auto& c : constraints) {
-//
-//        for (int j = 0; j < c.line.getVertexCount(); j++) {
-//
-//            c.line[j].position = { points[c.indices[j]].position.x, points[c.indices[j]].position.y };
-//
-//        }
-//
-//        window->draw(c.line);
-//
-//    }
-//
-//}
+};
 
-void Physics::render_circles() {
+void Physics::Body::collide(const float& delta_time, Body& body, const vec3& gravity) {
 
+    //if (this->find_collision(body).depth > 0.0f) {
 
-    for (const auto& planet : circles) {
+        vec3 friction;
+        for (auto& point : this->points) {
 
-        window->draw(planet);
+            for (auto& other_point : body.points) {
 
-    }
+                if (point.find_collision(other_point).depth > 0.0f) {
+                    
+                    friction = point.compute_friction_force(other_point, this->material.friction_coefficient, gravity);
+                    point.add_force(friction, delta_time);
 
-}
+                    point.collide(other_point, body.material.youngs_modulus, this->material.youngs_modulus);
+                    
+                };
 
-void Physics::render_rects() {
+            };
 
-    for (const auto& border : rects) {
+        };
 
-        window->draw(border);
+    //};
 
-    }
+};
 
-}
+void Physics::Body::update(const float& delta_time, const vec3& gravity) {
 
-void Physics::RENDER(std::vector<point_mass>& points, std::vector<sf::CircleShape>& colliders, std::vector<distance_constraint>& constraints, std::vector<sf::ConvexShape>& Lines) {
+    update_center();
 
-    render_circles();
+    float cross_section_area;
+    float extension;
+    float spring_constant;
+    
+    vec3 spring_force;
+    vec3 damping;
 
-    render_rects();
+    vec3 weight;
+    vec3 acceleration; 
 
-    render_colliders(points, colliders);
+    for (auto& point : this->points) {
+      
+        weight = point.compute_weight_force(gravity);
+        point.add_force(weight, delta_time);
+        
+        spring_constant = this->material.compute_spring_constant(this->center_to_point_length[point.index]);  
+        std::cout << "sring_constant: " << spring_constant << std::endl;
+        spring_force = point.compute_spring_force(this->center, this->center_to_point_length[point.index], spring_constant);  
+        point.add_force(spring_force, delta_time);
+          
+        damping = point.compute_damping_force(this->material.compute_damping_coefficient(spring_constant, point.mass), spring_force.magnitude() * 0.1f);
+        point.add_force(damping, delta_time);
 
-    render_soft_bodies(points);
+        point.apply_forces(delta_time);
+        this->frame.setPoint(point.index, sf::Vector2f(point.position.x, point.position.y));
 
-    render_constraints(points, constraints, Lines);
+        point.reset_forces();
 
-    //render_lines();
+    };
 
-   /* if (!blood_colliders.empty() && !blood_points.empty()) {
+};
 
-        render_colliders(blood_points, blood_colliders);
+void Physics::Body::render(sf::RenderWindow* window) {
 
-    }*/
+    window->draw(this->frame);
 
-}
+};
 
-void Physics::collider_control(std::vector<point_mass>& Points, std::vector<sf::CircleShape>& Colliders) {
+void Physics::RENDER(sf::RenderWindow* window) {
 
+    for (auto& body : this->Bodies) {
+
+        body.render(window);
+
+    };
+
+};
+
+void Physics::UPDATE(const float& delta_time, const vec3& gravity) {
+
+    for (auto& body : this->Bodies) {
+
+        for (auto& other_body : this->Bodies) {
+
+            if (body.index != other_body.index) {
+
+                body.collide(delta_time, other_body, gravity);
+
+            };
+
+        };  
+
+        body.update(delta_time, gravity);
+
+    };
+
+};
+
+void Physics::collider_control(sf::RenderWindow* window) {
+    
     if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
 
-        if (!Held.load()) {
+        if (!mouse_held.load()) {
 
-            Held = true;
+            mouse_held.store(true);
 
-        }
+        };
 
     }
 
     else {
 
-        if (Held.load()) {
+        if (mouse_held.load()) {
 
-            Held.store(false);
+            mouse_held.store(false);
+      
+        };
 
-            index = -1;
-
-        }
-
-    }
+    };
 
     sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
 
     sf::Vector2i prev_mousePos;
-    
-    if (Held.load() && !points.empty()) {
 
-        wasHeld.store(true);
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::LAlt) && mouse_was_held.load() && new_selection_valid.load()) {
 
-        if (mousePos.x >= 0 && mousePos.x <= 1920 && mousePos.y >= 0 && mousePos.y <= 1080) {
+        this->mouse_drawn_body_positions.emplace_back(mousePos.x, mousePos.y);
 
-            for (int i = 0; i < points.size(); i++) {
+    };
 
-                if (mousePos.x >= points[i].position.x - colliders[i].getRadius() &&
-                    mousePos.x <= points[i].position.x + colliders[i].getRadius() &&
-                    mousePos.y >= points[i].position.y - colliders[i].getRadius() &&
-                    mousePos.y <= points[i].position.y + colliders[i].getRadius()) {
+    if (mouse_held.load() && !this->Bodies.empty()) {
 
-                    if (index == -1) {
+        mouse_was_held.store(true);
 
-                        index.store(i);
+        if (mousePos.x >= 0 && mousePos.x <= sf::VideoMode::getDesktopMode().width && mousePos.y >= 0 && mousePos.y <= sf::VideoMode::getDesktopMode().height) {
 
-                        Valid = true;
+            if (!new_selection_valid.load()) {
 
-                    }
+                this->Bodies[caught_body_index].points[caught_point_index].position.x = mousePos.x;
+                this->Bodies[caught_body_index].points[caught_point_index].position.y = mousePos.y;
+                this->Bodies[caught_body_index].points[caught_point_index].velocity = { 0, 0 };
 
-                }
-
-                if (Valid.load() && index == i) {
-
-                    float x = mousePos.x;
-
-                    float y = mousePos.y;
-
-                    colliders[i].setPosition({ x - colliders[i].getRadius(), y - colliders[i].getRadius() });
-
-                    points[i].position.x = x;
-
-                    points[i].position.y = y;
-
-                    points[i].velocity = { 0, 0 };
-
-                    if (!index_caught.load()) {
-
-                        point_index.store(i);
-
-                        index_caught.store(true);
-
-                    }
-
-                    prev_mousePos = mousePos;
-
-                }
+                prev_mousePos = mousePos;
 
             }
+            else {
 
-        }
+                int body_count = 0;
+                for (auto& body : this->Bodies) {
+                    
+                    if (mousePos.x >= body.frame.getPosition().x - body.frame.getGlobalBounds().width &&
+                        mousePos.x <= body.frame.getPosition().x + body.frame.getGlobalBounds().width &&
+                        mousePos.y >= body.frame.getPosition().y - body.frame.getGlobalBounds().height &&
+                        mousePos.y <= body.frame.getPosition().y + body.frame.getGlobalBounds().height) continue;
 
-    }
+                    if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
 
-    if (!Held.load() && wasHeld.load()) {
+                        vec3 v(0, 100, 0);
+                        launch(body, v);
 
-        Valid = false;
+                    }
+                    else if (sf::Mouse::isButtonPressed(sf::Mouse::Middle)) {
 
-        wasHeld.store(false);
+                        //since we are in 2D the correct rotation axis is Z
+                        body.rotate({0, 0, 30});                       
 
-        index_caught.store(false);
+                    };
 
-    }
+                        for (auto& point : body.points) {
 
-}
+                            if (mousePos.x >= point.position.x - point.radius &&
+                                mousePos.x <= point.position.x + point.radius &&
+                                mousePos.y >= point.position.y - point.radius &&
+                                mousePos.y <= point.position.y + point.radius) {
 
-void Physics::collider_control_thread(std::vector<point_mass>& Points, std::vector<sf::CircleShape>& Colliders)
-{
+                                new_selection_valid.store(false);
+                                caught_body_index.store(body_count);
+                                caught_point_index.store(point.index);
 
-    while (true) {
+                                break;
 
-        collider_control(Points, Colliders);
+                            };
 
-    }
+                        };
 
-}
+                        body_count++;//incrementing
 
-void Physics::start_collider_control_thread(std::vector<point_mass>& Points, std::vector<sf::CircleShape>& Colliders)
-{
+                };
 
-    std::thread collider_movement([this, &Points, &Colliders]() {
+            };
 
-        this->collider_control_thread(Points, Colliders);
+        };
 
-        });
+    };
 
-    collider_movement.detach();
+    if (!mouse_held.load() && mouse_was_held.load()) {
+        
+        mouse_was_held.store(false);
 
-}
+        new_selection_valid.store(true);
 
-void Physics::TEST(sf::RenderWindow* window, Physics& physics, bool& start) {
+        if (!this->mouse_drawn_body_positions.empty()) {
+
+            
+            Body body(this->mouse_drawn_body_positions, Material::jello(), 400, 2);
+            body.frame.setFillColor(sf::Color(0, 250, 0, 250));
+            body.index = this->Bodies.size() - 1;
+            this->Bodies.emplace_back(std::move(body));
+
+            this->mouse_drawn_body_positions.clear();
+        };
+        
+    };
+
+};
+
+void Physics::TEST(sf::RenderWindow* window, vec3& gravity, bool& start) {
 
     bool create = false;
 
-    //colliders
     if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
 
         sf::Vector2i mouse_pos = sf::Mouse::getPosition();
@@ -1425,67 +773,16 @@ void Physics::TEST(sf::RenderWindow* window, Physics& physics, bool& start) {
 
         float r = 10;
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
 
-            velocity.x = 3000;
-
-            create = true;
-
-        }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q)) {
-
-            velocity.x = -3000;
+            velocity.x = 100;
 
             create = true;
 
         }
+        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-
-            velocity.y = -3000;
-
-            create = true;
-
-        }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-
-            velocity.y = 3000;
-
-            create = true;
-
-        }
-
-        if (start && create) {
-
-            create_collider(r, mouse_pos.x, mouse_pos.y, velocity, sf::Color::Blue, points, colliders);
-
-            start = false;
-
-            create = false;
-
-        }
-
-    }
-
-    //constraints
-    if (sf::Mouse::isButtonPressed(sf::Mouse::Middle)) {
-
-        sf::Vector2i mouse_pos = sf::Mouse::getPosition();
-
-        sf::Vector2f velocity = sf::Vector2f(0, 0);
-
-        float r = 10;
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
-
-            velocity.x = 900;
-
-            create = true;
-
-        }
-        else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q)) {
-
-            velocity.x = -900;
+            velocity.x = -100;
 
             create = true;
 
@@ -1493,14 +790,14 @@ void Physics::TEST(sf::RenderWindow* window, Physics& physics, bool& start) {
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
 
-            velocity.y = -900;
+            velocity.y = -100;
 
             create = true;
 
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
 
-            velocity.y = 900;
+            velocity.y = 100;
 
             create = true;
 
@@ -1508,15 +805,27 @@ void Physics::TEST(sf::RenderWindow* window, Physics& physics, bool& start) {
 
         if (start && create) {
 
-            create_colliders_with_constraints(r, mouse_pos.x, mouse_pos.y, velocity, r, mouse_pos.x + 100, mouse_pos.y, velocity, 100, points, colliders, constraints, Lines);
+            sf::CircleShape circle(r * 2);
+            circle.setPosition(sf::Vector2f(mouse_pos));
+            std::vector<vec3> vec;
+            for (int i = 0; i < circle.getPointCount(); ++i) {
+
+                vec.emplace_back(circle.getPoint(i).x + mouse_pos.x, circle.getPoint(i).y + mouse_pos.y, 0);
+
+            };
+         
+            //creating a body inside the vector
+            this->Bodies.emplace_back(vec, Material::rubber(), 62, 1, vec3(velocity.x, velocity.y));
+            this->Bodies[this->Bodies.size() - 1].frame.setFillColor(sf::Color(0, 0, 250, 250));
+            this->Bodies[this->Bodies.size() - 1].index = this->Bodies.size() - 1;
 
             start = false;
 
             create = false;
 
-        }
+        };
 
-    }
+    };
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) {
 
@@ -1524,48 +833,23 @@ void Physics::TEST(sf::RenderWindow* window, Physics& physics, bool& start) {
 
         sf::Vector2f velocity = sf::Vector2f(0, 0);
 
-        std::vector<sf::Vector2f> positions;
+        std::vector<vec3> rectangleVertices = {
+        
+            vec3(mouse_pos.x, mouse_pos.y),
 
-        std::vector<sf::Vector2f> rectangleVertices = {
-         
-         /////////////////////////////////////////////////////////////CREATES A SQUARE
-         
-            //sf::Vector2f(mouse_pos.x, mouse_pos.y),//left
+            vec3(mouse_pos.x + 50, mouse_pos.y),
 
-            //sf::Vector2f(mouse_pos.x + 200, mouse_pos.y),//right
+            vec3(mouse_pos.x + 100, mouse_pos.y + 50),
 
-            //sf::Vector2f(mouse_pos.x + 200, mouse_pos.y + 200),//bottom right
+            vec3(mouse_pos.x + 100, mouse_pos.y + 100),
 
-            //sf::Vector2f(mouse_pos.x, mouse_pos.y + 200)//bottom left
+            vec3(mouse_pos.x + 50, mouse_pos.y + 150),
 
+            vec3(mouse_pos.x, mouse_pos.y + 150),
 
-         /////////////////////////////////////////////////////////////CREATES A TRAPEZOID
+            vec3(mouse_pos.x - 50, mouse_pos.y + 100),
 
-                            /*  sf::Vector2f(mouse_pos.x, mouse_pos.y),
-
-                              sf::Vector2f(mouse_pos.x + 100, mouse_pos.y),
-
-                              sf::Vector2f(mouse_pos.x + 200, mouse_pos.y + 100),
-
-                              sf::Vector2f(mouse_pos.x - 100, mouse_pos.y + 100),*/
-
-         /////////////////////////////////////////////////////////////CREATES AN OCTAGON
-
-                             sf::Vector2f(mouse_pos.x, mouse_pos.y),         
-
-                             sf::Vector2f(mouse_pos.x + 50, mouse_pos.y),
-
-                             sf::Vector2f(mouse_pos.x + 100, mouse_pos.y + 50),
-
-                             sf::Vector2f(mouse_pos.x + 100, mouse_pos.y + 100),
-
-                             sf::Vector2f(mouse_pos.x + 50, mouse_pos.y + 150),
-
-                             sf::Vector2f(mouse_pos.x, mouse_pos.y + 150),
-
-                             sf::Vector2f(mouse_pos.x - 50, mouse_pos.y + 100),
-
-                             sf::Vector2f(mouse_pos.x - 50, mouse_pos.y + 50),
+            vec3(mouse_pos.x - 50, mouse_pos.y + 50),
                                           
         };
 
@@ -1573,14 +857,14 @@ void Physics::TEST(sf::RenderWindow* window, Physics& physics, bool& start) {
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
 
-            velocity.x = 900;
+            velocity.x = 300;
 
             create = true;
 
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q)) {
 
-            velocity.x = -900;
+            velocity.x = -300;
 
             create = true;
 
@@ -1588,14 +872,14 @@ void Physics::TEST(sf::RenderWindow* window, Physics& physics, bool& start) {
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
 
-            velocity.y = -900;
+            velocity.y = -300;
 
             create = true;
 
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
 
-            velocity.y = 900;
+            velocity.y = 300;
 
             create = true;
 
@@ -1603,8 +887,10 @@ void Physics::TEST(sf::RenderWindow* window, Physics& physics, bool& start) {
 
         if (start && create) {
 
-            create_soft_body_automatic(physics, rectangleVertices, velocity, r, sf::Color::Blue, points, colliders);
-
+            this->Bodies.emplace_back(rectangleVertices, Material::iron(), 5000, 2, vec3(velocity.x, velocity.y));
+            this->Bodies[this->Bodies.size() - 1].frame.setFillColor(sf::Color(1, 50, 90, 250));
+            this->Bodies[this->Bodies.size() - 1].index = this->Bodies.size() - 1;
+            
             start = false;
 
             create = false;
@@ -1615,22 +901,22 @@ void Physics::TEST(sf::RenderWindow* window, Physics& physics, bool& start) {
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down)) {
 
-        gravity.y++;
+        gravity.y += 3;
 
     }
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right)) {
 
-        gravity.x++;
+        gravity.x += 3;
 
     }
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left)) {
 
-        gravity.x--;
+        gravity.x -= 3;
 
     }
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up)) {
 
-        gravity.y--;
+        gravity.y -= 3;
 
     }
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::X)) {
@@ -1647,4 +933,4 @@ void Physics::TEST(sf::RenderWindow* window, Physics& physics, bool& start) {
 
     }
 
-}
+};

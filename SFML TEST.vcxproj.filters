@@ -13,6 +13,24 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Resource Files\resources">
+      <UniqueIdentifier>{973bd260-991e-4702-9fc9-5a809193e046}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\resources\Aramusha">
+      <UniqueIdentifier>{cc930096-3ba7-4aba-80e3-3ebb8673f74d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\resources\Samurai Commander">
+      <UniqueIdentifier>{e5ea922c-6bb3-4efa-b492-2c2a9e304d31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\resources\Samurai Archer">
+      <UniqueIdentifier>{a310b9ec-6788-46c1-a0d5-92158401a3b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\resources\Peasant">
+      <UniqueIdentifier>{d7d6bb9c-17ce-4d81-b277-f7add6f1617f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\resources\Backgrounds">
+      <UniqueIdentifier>{d1a0afa5-0ab0-4577-8eba-16c689dfceb0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="game.cpp">
@@ -24,9 +42,6 @@
     <ClCompile Include="Aramusha.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SamuraiCommander.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Enemy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -36,10 +51,16 @@
     <ClCompile Include="Grid.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Physics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Animation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Fluids.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Physics.cpp">
+    <ClCompile Include="Math.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -48,9 +69,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Aramusha.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SamuraiCommander.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Enemy.h">
@@ -62,11 +80,220 @@
     <ClInclude Include="Grid.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Fluids.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Physics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Animation.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Fluids.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Math.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\Aramusha\Aramusha_attack_from_leftside.png">
+      <Filter>Resource Files\resources\Aramusha</Filter>
+    </Image>
+    <Image Include="resources\Aramusha\Aramusha_attack_from_rightside.png">
+      <Filter>Resource Files\resources\Aramusha</Filter>
+    </Image>
+    <Image Include="resources\Aramusha\Aramusha_falldown_to_leftside.png">
+      <Filter>Resource Files\resources\Aramusha</Filter>
+    </Image>
+    <Image Include="resources\Aramusha\Aramusha_falldown_to_rightside.png">
+      <Filter>Resource Files\resources\Aramusha</Filter>
+    </Image>
+    <Image Include="resources\Aramusha\Aramusha_idle_looking_AtLeftside - Copy - Copy.png">
+      <Filter>Resource Files\resources\Aramusha</Filter>
+    </Image>
+    <Image Include="resources\Aramusha\Aramusha_idle_looking_AtLeftside - Copy.png">
+      <Filter>Resource Files\resources\Aramusha</Filter>
+    </Image>
+    <Image Include="resources\Aramusha\Aramusha_idle_looking_AtLeftside.png">
+      <Filter>Resource Files\resources\Aramusha</Filter>
+    </Image>
+    <Image Include="resources\Aramusha\Aramusha_jump_to_leftside.png">
+      <Filter>Resource Files\resources\Aramusha</Filter>
+    </Image>
+    <Image Include="resources\Aramusha\Aramusha_jump_to_rightside.png">
+      <Filter>Resource Files\resources\Aramusha</Filter>
+    </Image>
+    <Image Include="resources\Aramusha\Aramusha_run_to_leftside.png">
+      <Filter>Resource Files\resources\Aramusha</Filter>
+    </Image>
+    <Image Include="resources\Aramusha\Aramusha_run_to_rightside.png">
+      <Filter>Resource Files\resources\Aramusha</Filter>
+    </Image>
+    <Image Include="resources\Aramusha\Idle_Aramusha.png">
+      <Filter>Resource Files\resources\Aramusha</Filter>
+    </Image>
+    <Image Include="resources\Aramusha\Idle_Aramusha_left.png">
+      <Filter>Resource Files\resources\Aramusha</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\Idle_SamuraiCommander.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\Idle_SamuraiCommander_left.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_attack_from_leftside1.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_attack_from_leftside2.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_attack_from_leftside3.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_attack_from_rightside1.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_attack_from_rightside2.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_attack_from_rightside3.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_block_to_leftside.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_block_to_rightside.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_dead_from_leftside.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_dead_from_rightside.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_falldown_to_leftside.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_falldown_to_rightside.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_hurt_at_leftside.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_hurt_at_rightside.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_jump_to_leftside.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_jump_to_rightside.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_run_to_leftside.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Commander\SamuraiCommander_run_to_rightside.png">
+      <Filter>Resource Files\resources\Samurai Commander</Filter>
+    </Image>
+    <Image Include="resources\Samurai Archer\Idle_SamuraiArcher.png">
+      <Filter>Resource Files\resources\Samurai Archer</Filter>
+    </Image>
+    <Image Include="resources\Samurai Archer\Idle_SamuraiArcher_left.png">
+      <Filter>Resource Files\resources\Samurai Archer</Filter>
+    </Image>
+    <Image Include="resources\Samurai Archer\SamuraiArcher_attack_from_leftside1.png">
+      <Filter>Resource Files\resources\Samurai Archer</Filter>
+    </Image>
+    <Image Include="resources\Samurai Archer\SamuraiArcher_attack_from_leftside2.png">
+      <Filter>Resource Files\resources\Samurai Archer</Filter>
+    </Image>
+    <Image Include="resources\Samurai Archer\SamuraiArcher_attack_from_leftside3.png">
+      <Filter>Resource Files\resources\Samurai Archer</Filter>
+    </Image>
+    <Image Include="resources\Samurai Archer\SamuraiArcher_attack_from_rightside1.png">
+      <Filter>Resource Files\resources\Samurai Archer</Filter>
+    </Image>
+    <Image Include="resources\Samurai Archer\SamuraiArcher_attack_from_rightside2.png">
+      <Filter>Resource Files\resources\Samurai Archer</Filter>
+    </Image>
+    <Image Include="resources\Samurai Archer\SamuraiArcher_attack_from_rightside3.png">
+      <Filter>Resource Files\resources\Samurai Archer</Filter>
+    </Image>
+    <Image Include="resources\Samurai Archer\SamuraiArcher_hurt_at_leftside.png">
+      <Filter>Resource Files\resources\Samurai Archer</Filter>
+    </Image>
+    <Image Include="resources\Samurai Archer\SamuraiArcher_hurt_at_rightside.png">
+      <Filter>Resource Files\resources\Samurai Archer</Filter>
+    </Image>
+    <Image Include="resources\Samurai Archer\SamuraiArcher_run_to_leftside.png">
+      <Filter>Resource Files\resources\Samurai Archer</Filter>
+    </Image>
+    <Image Include="resources\Samurai Archer\SamuraiArcher_run_to_rightside.png">
+      <Filter>Resource Files\resources\Samurai Archer</Filter>
+    </Image>
+    <Image Include="resources\Samurai Archer\SamuraiArcher_shoot_from_leftside.png">
+      <Filter>Resource Files\resources\Samurai Archer</Filter>
+    </Image>
+    <Image Include="resources\Samurai Archer\SamuraiArcher_shoot_from_rightside.png">
+      <Filter>Resource Files\resources\Samurai Archer</Filter>
+    </Image>
+    <Image Include="resources\Peasant\Idle_Peasant.png">
+      <Filter>Resource Files\resources\Peasant</Filter>
+    </Image>
+    <Image Include="resources\Peasant\Idle_Peasant_left.png">
+      <Filter>Resource Files\resources\Peasant</Filter>
+    </Image>
+    <Image Include="resources\Peasant\Idle_Peasant_wound.png">
+      <Filter>Resource Files\resources\Peasant</Filter>
+    </Image>
+    <Image Include="resources\Peasant\Peasant_attack_from_leftside1.png">
+      <Filter>Resource Files\resources\Peasant</Filter>
+    </Image>
+    <Image Include="resources\Peasant\Peasant_attack_from_leftside2.png">
+      <Filter>Resource Files\resources\Peasant</Filter>
+    </Image>
+    <Image Include="resources\Peasant\Peasant_attack_from_rightside1.png">
+      <Filter>Resource Files\resources\Peasant</Filter>
+    </Image>
+    <Image Include="resources\Peasant\Peasant_attack_from_rightside2.png">
+      <Filter>Resource Files\resources\Peasant</Filter>
+    </Image>
+    <Image Include="resources\Peasant\Peasant_block_to_leftside.png">
+      <Filter>Resource Files\resources\Peasant</Filter>
+    </Image>
+    <Image Include="resources\Peasant\Peasant_block_to_rightside.png">
+      <Filter>Resource Files\resources\Peasant</Filter>
+    </Image>
+    <Image Include="resources\Peasant\Peasant_hurt_at_leftside.png">
+      <Filter>Resource Files\resources\Peasant</Filter>
+    </Image>
+    <Image Include="resources\Peasant\Peasant_hurt_at_rightside.png">
+      <Filter>Resource Files\resources\Peasant</Filter>
+    </Image>
+    <Image Include="resources\Peasant\Peasant_run_to_leftside.png">
+      <Filter>Resource Files\resources\Peasant</Filter>
+    </Image>
+    <Image Include="resources\Peasant\Peasant_run_to_rightside.png">
+      <Filter>Resource Files\resources\Peasant</Filter>
+    </Image>
+    <Image Include="resources\Peasant\Peasant_walk_to_leftside.png">
+      <Filter>Resource Files\resources\Peasant</Filter>
+    </Image>
+    <Image Include="resources\Peasant\Peasant_walk_to_rightside.png">
+      <Filter>Resource Files\resources\Peasant</Filter>
+    </Image>
+    <Image Include="resources\Peasant\Shot.png">
+      <Filter>Resource Files\resources\Peasant</Filter>
+    </Image>
+    <Image Include="resources\Backgrounds\Forest_background.png">
+      <Filter>Resource Files\resources\Backgrounds</Filter>
+    </Image>
+    <Image Include="resources\Backgrounds\moon_bamboo_forest.png">
+      <Filter>Resource Files\resources\Backgrounds</Filter>
+    </Image>
+    <Image Include="resources\Backgrounds\shoji.png">
+      <Filter>Resource Files\resources\Backgrounds</Filter>
+    </Image>
   </ItemGroup>
 </Project>

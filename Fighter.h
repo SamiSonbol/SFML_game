@@ -1,71 +1,12 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include "Animation.h"
 
 using namespace sf;
 
 class Fighter
 {
 public :
-
-	Texture idle_looking_AtLeftside;
-
-	Texture idle;
-
-	Texture idle_left;
-
-	Texture attack_from_rightside1;
-
-	Texture attack_from_leftside1;
-
-	Texture attack_from_rightside2;
-
-	Texture attack_from_leftside2;
-
-	Texture attack_from_rightside3;
-
-	Texture attack_from_leftside3;
-
-	Texture run_to_rightside;
-
-	Texture run_to_leftside;
-
-	Texture jump_to_rightside;
-
-	Texture jump_to_leftside;
-
-	Texture block_to_rightside;
-
-	Texture block_to_leftside;
-
-	Texture hurt_at_leftside;
-
-	Texture hurt_at_rightside;
-
-	Texture dead_from_rightside;
-
-	Texture dead_from_leftside;
-
-	Sprite idle_sprite;
-
-	int flip;
-
-	int flip_toLeft;
-
-	int flip_attack;
-
-	int flip_attack_from_rightside;
-
-	int flip_idle;
-
-	int when_to_fallX;
-
-	int when_to_fallY;
-
-	int flip_block;
-
-	int flip_dead_from_rightside;
-
-	int flip_dead_from_leftside;
 
 	bool is_left;
 
@@ -81,8 +22,6 @@ public :
 
 	bool is_attacking;
 
-	bool Player_is_on_rightside;
-
 	bool Player_is_attacking;
 
 	bool stationary;
@@ -95,33 +34,41 @@ public :
 
 	float movementSpeed;
 
-	float dt;
-
 	float window_height;
 
 	float window_width;
 
 	Vector2f velocity;
 
-	Vector2f pos;
-
-	Vector2f Player_pos;
-
 	Event my_event;
 
-	Clock dt_clock;
+	sf::Sprite main_sprite;
+
+	Animator animator;
 
 	Fighter() {};
 
 	//virtual void idleState() = 0;
 	
-	virtual void movement() = 0;
-	virtual void combat() = 0;
+	virtual void movement(const float& delta_time) = 0;
+	virtual void combat(const float& delta_time) = 0;
+
+	void update_sprite(Spritesheet& spritesheet, sf::Sprite& sprite, const sf::Vector2f& sprite_scale, const float& delta_time);
 
 	void screen_collision();
 
-	template <typename U>
-    void fighter_collision(std::shared_ptr<U> EnemyFighter);
+	//i opted to use 2 bool functions instead of negating 1 bool function inorder to avoid edge cases and keep syntax clear
+	bool is_on_right_side(const sf::Sprite& sprite);
+	bool is_on_left_side(const sf::Sprite& sprite);
+
+	bool intersects(const sf::Sprite& sprite);
+	bool contains(const sf::Vector2f& pos);
+
+	void fighter_collision(Fighter& enemy_fighter);
+
+	bool in_range(const float range, const sf::Vector2f& target);
+
+	void RENDER(sf::RenderWindow* window, const float& delta_time);
 
 };
 

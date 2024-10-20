@@ -1,230 +1,144 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <memory>
+#include <thread>
+#include <iostream>
+#include "Math.h"
 
-class Fluids;
-
-class Physics : public std::enable_shared_from_this<Physics>
+class Physics
 {
 
 public:
 
-    struct point_mass {
-    
-        sf::Vector2f position;
+    struct Material {
 
-        sf::Vector2f velocity;
+    public:
 
-        float mass = 5;
+        float friction_coefficient;
+        float youngs_modulus;//young's modulus is the stiffness of the material, the more it increases the less elastic the material becomes
+        float damping_ratio;
+
+        float compute_spring_constant(const float& cross_section_area, const float& length_of_spring_at_rest);
+        float compute_spring_constant(const float& length_of_spring_at_rest);
+
+        float compute_damping_coefficient(const float& spring_constant, const float& mass);
+
+        Material(const float& friction_coefficient, const float& youngs_modulus, const float& damping_ratio);
+
+        static float to_GPa(const float& Pa);
+        static float to_Pa(const float& GPa);
+
+        static Material iron();
+        static Material wood();
+        static Material rubber();
+        static Material jello();
 
     };
 
-    struct collision {
+    struct Collision {
 
-        sf::Vector2f normal{ 0.f, 0.f };
+        vec3 normal = vec3(0.0f, 0.0f, 0.0f);
 
         float depth = -std::numeric_limits<float>::infinity();
 
     };
 
-    struct distance_constraint {
-
-        uint32_t index0, index1;
-
-        std::vector<uint32_t> indices;
-
-        float distance;
-
-        sf::VertexArray line;
-
-        sf::ConvexShape Line;
-
-    };
-
-    struct planet {
+    class point_mass {
     
-        sf::Vector2f center;
+    public:
 
+        float mass;
         float radius;
 
-    };
+        vec3 position;      
+        vec3 velocity;
+        vec3 net_force;
 
-    struct border {
+        uint32_t index;
 
-        sf::Vector2f center;
+        Physics::Collision find_collision(const point_mass& point);
+        void collide(point_mass& point, const float& point_elasticity, const float& elasticity);
 
-        float width;
-
-        float length;
-
-        bool is_horizontal;
-
-    };
-
-    struct soft_body {
-
-        struct vertex {
+        vec3 compute_spring_force(const vec3& anchor_pos, const float& length_of_spring_at_rest, const float& spring_constant);
+        vec3 compute_weight_force(const vec3& gravity);
+        vec3 compute_friction_force(const point_mass& point, const float& friction_coefficient, const vec3& gravity);  
+        vec3 compute_damping_force(const float& damping_coefficient, const float& max_damping_force);
         
-            uint32_t index;
+        void add_force(const vec3& force, const float& delta_time);
+        void apply_forces(const float& delta_time);
+        void reset_forces();
+     
+        point_mass(const vec3& position, const vec3& velocity, const float& radius = 1.0f, const float& mass = 0.1f);
 
-            sf::Vector2f  position;
+    };
+
+    class Body {
+
+    public:
+
+        Material material;
+
+        sf::ConvexShape frame;
+        vec3 center;
+
+        std::vector<point_mass> points;
+        std::vector<float> center_to_point_length;//this vector holds the length between each point and its neighbor at initial state 
+
+        uint32_t index;
+
+        float mass;
+
+        void print_debug_information();
+
+        void update_center();
+        vec3 get_bounds();
+
+        vec3 get_position();
+        void set_position(const vec3& position);
+        void rotate(const vec3& rotation_vector);
+
+        Physics::Collision find_collision(const Body& body);
+
+        //WARNING: this function should not be used unless you want to have mass_points of different masses on the same object. Default is that each point's mass would get its value based off the
+        //inputed Body's mass divided by total number of points => hence the Body's mass needs to be calculated instead of inputed if you want to have unique or diff mass for points
+        //WARNING: just use default standard mass implementation since its easier; 
+        float calculate_total_mass();
+
+        void update(const float& delta_time, const vec3& gravity);
+
+        void collide(const float& delta_time, Body& body, const vec3& gravity);
+
+        void render(sf::RenderWindow* window);
+
+        Body(const std::vector<vec3>& positions, const Material& material, const float& mass, const float& radius = 1.0f, const vec3& velocity = {0.0f, 0.0f, 0.0f});
+
+    };
+        
+    std::vector<Body> Bodies;
+
+    std::atomic<bool> mouse_held = false;
+    std::atomic<bool> mouse_was_held = false;
+    std::atomic<bool> new_selection_valid = true;
+
+    std::atomic<int> caught_body_index;
+    std::atomic<int> caught_point_index;
+    std::vector<vec3> mouse_drawn_body_positions;
+
+    void UPDATE(const float& delta_time, const vec3& gravity);
+    void RENDER(sf::RenderWindow* window);
+
+    void collider_control(sf::RenderWindow* window);
+    void TEST(sf::RenderWindow* window, vec3& gravity, bool& start);
+
+    static void launch(Body& body, const vec3& velocity) {
+
+        for (auto& point : body.points) {
+
+            point.velocity = velocity;
 
         };
 
-        sf::ConvexShape shape;
-
-        sf::VertexArray inner_diagonals_of_shape;
-
-        std::vector<vertex> vertices;
-
-        sf::Vector2f center;
-
-        std::vector<sf::Vector2f> vectors_from_center;
-
     };
-
-    //struct engine {
-        
-        std::vector<point_mass> points;
-
-        std::vector<sf::CircleShape> colliders;
-
-        std::vector<distance_constraint> constraints;
-
-        std::vector<soft_body> soft_bodies;
-
-        std::vector<sf::ConvexShape> soft_bodies_shapes;
-
-        std::vector<int> all_soft_bodies_indices;
-
-        std::vector<sf::ConvexShape> Lines;
-
-        std::vector<sf::VertexArray> lines;
-
-        sf::Vector2f gravity{ 0, 1000};
-
-        sf::Vector2f friction{ 0.5, 0.5 };
-
-        sf::Vector2f elasticity{ 0.5, 0.5 };//1 elasticity means the object retains full velocity after bouncing
-
-        float spring_force = 800;//increasing the number makes the spring/string way less mellow, but would basically throw the force back at you like a ballista 
-                                 //increase it to make the object more stiff and less jello like. At 100 it very mello, 300 is jello, 800 is nice and springy - jello, 
-                                 //5K is very springy making the the constraint between the points more firm, 10K is nice and crispy, 30k is very very crispy. More
-                                 //than this will break
-
-        float spring_damping = 10;//increasing dampening lessens the vibration from the spring force on the objects. BEST AT 2.5 / 5 / 10
-                                  //PRO TIP: LEAVE IT AT 10 AND ONLY CHANGE THE SPRING_FORCE
-
-        void create_collider(float radius, float x, float y, sf::Vector2f velocity, sf::Color color, std::vector<point_mass>& points, std::vector<sf::CircleShape>& colliders);
-
-        void create_colliders_with_constraints(float radius1, float x1, float y1, sf::Vector2f velocity1, float radius2, float x2, float y2, sf::Vector2f velocity2, float distance, std::vector<point_mass>& points, std::vector<sf::CircleShape>& colliders, std::vector<distance_constraint>& constraints, std::vector<sf::ConvexShape>& Lines);
-
-        Physics::soft_body create_soft_body_automatic(Physics& physics, std::vector<sf::Vector2f>& vertices_positions, sf::Vector2f velocity, float radius, sf::Color const& color, std::vector<point_mass>& points, std::vector<sf::CircleShape>& colliders);
-
-        void update_gravity_and_positions(float dt, std::vector<point_mass>& points);
-
-        void update(float dt, planet const& myPlanet, std::vector<point_mass>& points);
-
-        void update(float dt, border const& rect, std::vector<point_mass>& points);
-
-        void update_planets(float dt, std::vector<planet> const& planets, std::vector<point_mass>& points);
-
-        void update_borders(float dt, std::vector<border> const& borders, std::vector<point_mass>& points);
-
-        void update_colliders(float dt, std::vector<point_mass>& points, std::vector<sf::CircleShape>& colliders);
-
-        void update_soft_bodies(float dt, std::vector<point_mass>& points);
-
-        void update_constraints(float dt, std::vector<point_mass>& points, std::vector<distance_constraint>& constraints);
-
-        void UPDATE(float dt, std::vector<planet> const& planets, std::vector<border> const& borders, std::vector<point_mass>& points, std::vector<sf::CircleShape>& colliders, std::vector<distance_constraint>& constraints);////    
-
-    //};
-
-    void setWindow(sf::RenderWindow* window);
-
-    void setFluids(std::shared_ptr<Fluids> fluids);
-
-    sf::Vector2f multiplyVectors(sf::Vector2f const& A, sf::Vector2f const& B);
-
-    float length(const sf::Vector2f& v);
-
-    float dot(sf::Vector2f A, sf::Vector2f B);
-
-    float cross(sf::Vector2f A, sf::Vector2f B);
-
-    sf::Vector2f rotate(sf::Vector2f const& vector, float const& angle);
-
-    void create_border(bool orientation, float length, float width, float x, float y);
-
-    void create_planet(float radius, float x, float y);
-
-    collision find_collision(sf::Vector2f const& position);
-
-    collision find_collision(sf::Vector2f const& position, planet const& planet);
-
-    collision find_collision(sf::Vector2f const& position, border const& rect);
-
-    collision find_collision(sf::Vector2f const& position, std::vector<planet> const& planets);
-
-    collision find_collision(sf::Vector2f const& position, std::vector<border> const& borders);
-
-    collision find_collision(const point_mass& p1, const point_mass& p2, float radius1, float radius2);
-
-    void render_circles();
-
-    void render_rects();
-
-    void render_soft_bodies(std::vector<point_mass>& points);
-
-    void render_colliders(std::vector<point_mass>& points, std::vector<sf::CircleShape>& colliders);
-
-    void render_constraints(std::vector<point_mass>& points, std::vector<distance_constraint>& constraints, std::vector<sf::ConvexShape>& Lines);
-
-    //void render_lines();
-
-    void RENDER(std::vector<point_mass>& points, std::vector<sf::CircleShape>& colliders, std::vector<distance_constraint>& constraints, std::vector<sf::ConvexShape>& Lines);
-
-    void collider_control(std::vector<point_mass>& Points, std::vector<sf::CircleShape>& Colliders);
-
-    void collider_control_thread(std::vector<point_mass>& Points, std::vector<sf::CircleShape>& Colliders);
-
-    void start_collider_control_thread(std::vector<point_mass>& Points, std::vector<sf::CircleShape>& Colliders);
-
-    void TEST(sf::RenderWindow* window, Physics& physics, bool& start);
-
-
-    sf::RenderWindow* window;
-
-    std::vector<border> borders;
-
-    std::vector<sf::RectangleShape> rects;
-
-    std::vector<planet> planets;
-
-    std::vector<sf::CircleShape> circles;
-
-    std::atomic<bool> Held = false;
-
-    std::atomic<bool> wasHeld = false;
-
-    std::atomic<bool> Valid = false;
-
-    std::atomic<bool> index_caught = false;
-
-    std::atomic<int> index;
-
-    std::atomic<int> point_index;
-
-    //these 2 vectors are used in the Fluids class, however they are here created due to the problem of having to forward delcare their type (nested structure in a class)
-    //in the Fluids class
-    std::vector<point_mass> blood_points;
-
-    std::vector<sf::CircleShape> blood_colliders;
-
-    private:
-
-        std::shared_ptr<Fluids> fluids;
 
 };
 

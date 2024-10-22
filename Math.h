@@ -8,9 +8,9 @@ class point {
 
 public:
 
-	float x, y, z, w;
+	double x, y, z, w;
 
-	point(float x, float y, float z, float w = 1) {
+	point(double x, double y, double z, double w = 1) {
 
 		this->x = x;
 		this->y = y;
@@ -34,17 +34,17 @@ class vec2 {
 
 public:
 
-	float x, y;
+	double x, y;
 
-	vec2(const float& x = 0.0f, const float& y = 0.0f) : x(x), y(y) {};
+	vec2(const double& x = 0.0f, const double& y = 0.0f) : x(x), y(y) {};
 
-	float magnitude() const {
+	double magnitude() const {
 
 		return std::sqrt(this->x * this->x + this->y * this->y);
 
 	};
 
-	float dot(const vec2& vec) {
+	double dot(const vec2& vec) {
 
 		return this->x * vec.x + this->y * vec.y;
 
@@ -79,7 +79,7 @@ public:
 		return vec2(this->x * vec.x, this->y * vec.y);
 
 	};
-	vec2 operator*(const float& n) const {
+	vec2 operator*(const double& n) const {
 
 		return vec2(this->x * n, this->y * n);
 
@@ -90,7 +90,7 @@ public:
 		this->y *= vec.y;
 	
 	};
-	void operator*=(const float& n) {
+	void operator*=(const double& n) {
 
 		this->x *= n;
 		this->y *= n;
@@ -102,7 +102,7 @@ public:
 		return vec2(this->x / vec.x, this->y / vec.y);
 
 	};
-	vec2 operator/(const float& n) const {
+	vec2 operator/(const double& n) const {
 
 		return vec2(this->x / n, this->y / n);
 
@@ -113,14 +113,14 @@ public:
 		this->y /= vec.y;
 		
 	};
-	void operator/=(const float& n) {
+	void operator/=(const double& n) {
 
 		this->x /= n;
 		this->y /= n;
 		
 	};
 
-	bool operator==(const vec2& vec) {
+	bool operator==(const vec2& vec) const {
 
 		if (this->x == vec.x && this->y == vec.y) {
 
@@ -131,7 +131,7 @@ public:
 		return false;
 
 	};
-	bool operator!=(const vec2& vec) {
+	bool operator!=(const vec2& vec) const {
 
 		if (this->x != vec.x && this->y != vec.y) {
 
@@ -145,9 +145,9 @@ public:
 
 	vec2 normalize() const {
 
-		float n = magnitude();
+		double n = magnitude();
 
-		if (n != 0) {
+		if (n != 0.0f) {
 		
 			return vec2(this->x, this->y) / n;
 
@@ -155,9 +155,9 @@ public:
 
 	};
 
-	std::vector<float> to_GL() {
+	std::vector<double> to_GL() {
 
-		return std::vector<float> { this->x, this->y };
+		return std::vector<double> { this->x, this->y };
 
 	};
 
@@ -168,19 +168,19 @@ class vec3 {
 
 public:
 
-	float x, y, z;
+	double x, y, z;
 
-	vec3(const float& x = 0.0f, const float& y = 0.0f, const float& z = 1.0f) : x(x), y(y), z(z) {};
+	vec3(const double& x = 0.0f, const double& y = 0.0f, const double& z = 1.0f) : x(x), y(y), z(z) {};
 
-	vec3(const vec2& vec, const float& z) : x(vec.x), y(vec.y), z(z) {};//override
+	vec3(const vec2& vec, const double& z) : x(vec.x), y(vec.y), z(z) {};//override
 
-	float magnitude() const{
+	double magnitude() const{
 
 		return std::sqrt(this->x * this->x + this->y * this->y + this->z * this->z);
 
 	};
 
-	float dot(const vec3& vec) const {
+	double dot(const vec3& vec) const {
 
 		return this->x * vec.x + this->y * vec.y + this->z * vec.z;
 
@@ -225,7 +225,7 @@ public:
 		return vec3(this->x * vec.x, this->y * vec.y, this->z * vec.z);
 
 	};
-	vec3 operator*(const float& n) const {
+	vec3 operator*(const double& n) const {
 
 		return vec3(this->x * n, this->y * n, this->z * n);
 
@@ -237,7 +237,7 @@ public:
 		this->z *= vec.z;
 
 	};
-	void operator*=(const float& n) {
+	void operator*=(const double& n) {
 
 		this->x *= n;
 		this->y *= n;
@@ -250,7 +250,7 @@ public:
 		return vec3(this->x / vec.x, this->y / vec.y, this->z / vec.z);
 
 	};
-	vec3 operator/(const float& n) const {
+	vec3 operator/(const double& n) const {
 
 		return vec3(this->x / n, this->y / n, this->z / n);
 
@@ -262,7 +262,7 @@ public:
 		this->z /= vec.z;
 
 	};
-	void operator/=(const float& n) {
+	void operator/=(const double& n) {
 
 		this->x /= n;
 		this->y /= n;
@@ -270,34 +270,23 @@ public:
 
 	};
 
-	bool operator==(const vec3& vec) {
+	bool operator==(const vec3& vec) const {
 
-		if (this->x == vec.x && this->y == vec.y && this->z == vec.z) {
-
-			return true;
-
-		};
-		
-		return false;
+		return this->x == vec.x && this->y == vec.y && this->z == vec.z;
 
 	};
-	bool operator!=(const vec3& vec) {
 
-		if (this->x != vec.x && this->y != vec.y && this->z != vec.z) {
+	bool operator!=(const vec3& vec) const {
 
-			return true;
-
-		};
-
-		return false;
+		return !(*this == vec);
 
 	};
 
 	vec3 normalize() const {
 
-		float n = magnitude();
+		double n = magnitude();
 
-		if (n != 0) {
+		if (n != 0.0f) {
 
 			return vec3(this->x, this->y, this->z) / n;
 
@@ -305,9 +294,9 @@ public:
 
 	};
 
-	std::vector<float> to_GL() {
+	std::vector<double> to_GL() {
 
-		return std::vector<float> { this->x, this->y, this->z };
+		return std::vector<double> { this->x, this->y, this->z };
 
 	};
 
@@ -317,18 +306,18 @@ class vec4 {
 
 public:
 
-	float x, y, z, w;
-	vec4(const float& x = 0.0f, const float& y = 0.0f, const float& z = 0.0f, const float& w = 1.0f) : x(x), y(y), z(z), w(w) {};
+	double x, y, z, w;
+	vec4(const double& x = 0.0f, const double& y = 0.0f, const double& z = 0.0f, const double& w = 1.0f) : x(x), y(y), z(z), w(w) {};
 
-	vec4(const vec3& vec, const float& w = 1.0f) : x(vec.x), y(vec.y), z(vec.z), w(w) {};//override
+	vec4(const vec3& vec, const double& w = 1.0f) : x(vec.x), y(vec.y), z(vec.z), w(w) {};//override
 
-	float magnitude() const {
+	double magnitude() const {
 
 		return std::sqrt(this->x * this->x + this->y * this->y + this->z * this->z + this->w * this->w);
 
 	};
 
-	float dot(const vec4& vec) const {
+	double dot(const vec4& vec) const {
 
 		return this->x * vec.x + this->y * vec.y + this->z * vec.z + this->w * vec.w;
 
@@ -367,7 +356,7 @@ public:
 		return vec4(this->x * vec.x, this->y * vec.y, this->z * vec.z, this->w * vec.w);
 
 	};
-	vec4 operator*(const float& n) const {
+	vec4 operator*(const double& n) const {
 
 		return vec4(this->x * n, this->y * n, this->z * n, this->w * n);
 
@@ -380,7 +369,7 @@ public:
 		this->w *= vec.w;
 
 	};
-	void operator*=(const float& n) {
+	void operator*=(const double& n) {
 
 		this->x *= n;
 		this->y *= n;
@@ -394,7 +383,7 @@ public:
 		return vec4(this->x / vec.x, this->y / vec.y, this->z / vec.z, this->w / vec.w);
 
 	};
-	vec4 operator/(const float& n) const {
+	vec4 operator/(const double& n) const {
 
 		return vec4(this->x / n, this->y / n, this->z / n, this->w / n);
 
@@ -407,7 +396,7 @@ public:
 		this->w /= vec.w;
 
 	};
-	void operator/=(const float& n) {
+	void operator/=(const double& n) {
 
 		this->x /= n;
 		this->y /= n;
@@ -416,7 +405,7 @@ public:
 
 	};
 
-	bool operator==(const vec4& vec) {
+	bool operator==(const vec4& vec) const {
 
 		if (this->x == vec.x && this->y == vec.y && this->z == vec.z && this->w == vec.w) {
 
@@ -427,7 +416,7 @@ public:
 		return false;
 
 	};
-	bool operator!=(const vec4& vec) {
+	bool operator!=(const vec4& vec) const {
 
 		if (this->x != vec.x && this->y != vec.y && this->z != vec.z && this->w != vec.w) {
 
@@ -441,9 +430,9 @@ public:
 
 	vec4 normalize() const {
 
-		float n = magnitude();
+		double n = magnitude();
 
-		if (n != 0) {
+		if (n != 0.0f) {
 
 			return vec4(this->x, this->y, this->z, this->w) / n;
 
@@ -451,9 +440,9 @@ public:
 
 	};
 
-	std::vector<float> to_GL() {
+	std::vector<double> to_GL() {
 
-		return std::vector<float> { this->x, this->y, this->z, this->w };
+		return std::vector<double> { this->x, this->y, this->z, this->w };
 
 	};
 
@@ -463,15 +452,15 @@ class mat3 {
 
 public:
 
-    float a11, a12, a13;
-    float a21, a22, a23;
-    float a31, a32, a33;
+    double a11, a12, a13;
+    double a21, a22, a23;
+    double a31, a32, a33;
 
 	mat3(
 
-		float a11 = 1.0f, float a12 = 0.0f, float a13 = 0.0f,
-		float a21 = 0.0f, float a22 = 1.0f, float a23 = 0.0f,
-		float a31 = 0.0f, float a32 = 0.0f, float a33 = 1.0f) : 
+		double a11 = 1.0f, double a12 = 0.0f, double a13 = 0.0f,
+		double a21 = 0.0f, double a22 = 1.0f, double a23 = 0.0f,
+		double a31 = 0.0f, double a32 = 0.0f, double a33 = 1.0f) : 
 		
 		a11(a11), a12(a12), a13(a13),
 	    a21(a21), a22(a22), a23(a23),
@@ -503,7 +492,7 @@ public:
 
 	};
 
-	mat3 operator*(const float& n) const {
+	mat3 operator*(const double& n) const {
 
 		return mat3(
 
@@ -527,7 +516,7 @@ public:
 
 	};
 
-	std::vector<float> to_GL() const {
+	std::vector<double> to_GL() const {
 
 		return {
 
@@ -545,17 +534,17 @@ class mat4 {
 
 public:
 
-    float a11, a12, a13, a14;
-    float a21, a22, a23, a24;
-    float a31, a32, a33, a34;
-    float a41, a42, a43, a44;
+    double a11, a12, a13, a14;
+    double a21, a22, a23, a24;
+    double a31, a32, a33, a34;
+    double a41, a42, a43, a44;
 
 	mat4(
 
-		float a11 = 1.0f, float a12 = 0.0f, float a13 = 0.0f, float a14 = 0.0f,
-		float a21 = 0.0f, float a22 = 1.0f, float a23 = 0.0f, float a24 = 0.0f,
-		float a31 = 0.0f, float a32 = 0.0f, float a33 = 1.0f, float a34 = 0.0f,
-		float a41 = 0.0f, float a42 = 0.0f, float a43 = 0.0f, float a44 = 1.0f) :
+		double a11 = 1.0f, double a12 = 0.0f, double a13 = 0.0f, double a14 = 0.0f,
+		double a21 = 0.0f, double a22 = 1.0f, double a23 = 0.0f, double a24 = 0.0f,
+		double a31 = 0.0f, double a32 = 0.0f, double a33 = 1.0f, double a34 = 0.0f,
+		double a41 = 0.0f, double a42 = 0.0f, double a43 = 0.0f, double a44 = 1.0f) :
 
 		a11(a11), a12(a12), a13(a13), a14(a14),
 		a21(a21), a22(a22), a23(a23), a24(a24),
@@ -604,7 +593,7 @@ public:
 		);
 	};
 
-	mat4 operator*(const float& n) const {
+	mat4 operator*(const double& n) const {
 
 		return mat4(
 
@@ -632,7 +621,7 @@ public:
 
 	mat4 inverse() const {
 
-		float det = a11 * (a22 * (a33 * a44 - a34 * a43) - a23 * (a32 * a44 - a34 * a42) + a24 * (a32 * a43 - a33 * a42))
+		double det = a11 * (a22 * (a33 * a44 - a34 * a43) - a23 * (a32 * a44 - a34 * a42) + a24 * (a32 * a43 - a33 * a42))
 			- a12 * (a21 * (a33 * a44 - a34 * a43) - a23 * (a31 * a44 - a34 * a41) + a24 * (a31 * a43 - a33 * a41))
 			+ a13 * (a21 * (a32 * a44 - a34 * a42) - a22 * (a31 * a44 - a34 * a41) + a24 * (a31 * a42 - a32 * a41))
 			- a14 * (a21 * (a32 * a43 - a33 * a42) - a22 * (a31 * a43 - a33 * a41) + a23 * (a31 * a42 - a32 * a41));
@@ -642,9 +631,9 @@ public:
 			std::cerr << "Matrix is singular and cannot be inverted." << std::endl;
 			return mat4(); // Return identity or some error indicator
 
-		}
+		};
 
-		float inv_det = 1.0f / det;
+		double inv_det = 1.0f / det;
 
 		return mat4(
 
@@ -671,7 +660,7 @@ public:
 		);
 	}
 
-	std::vector<float> to_GL() const {
+	std::vector<double> to_GL() const {
 
 		return {
 
@@ -682,18 +671,18 @@ public:
 
 		};
 
-	}
+	};
 
 };
 
-static float to_radians(const float& degree) {
+static double to_radians(const double& degree) {
 
 	return degree * 3.14159265359f / 180.0f;
 
 };
 
 //2D
-static mat3 create_translation_matrix(const float& x, const float& y) {
+static mat3 create_translation_matrix(const double& x, const double& y) {
 
 	return mat3(
 
@@ -717,7 +706,7 @@ static mat3 create_translation_matrix(const vec2& translation_vector) {//@overri
 
 };
 
-static mat3 create_scale_matrix(const float& x, const float& y) {
+static mat3 create_scale_matrix(const double& x, const double& y) {
 
 	return mat3(
 
@@ -741,9 +730,9 @@ static mat3 create_scale_matrix(const vec2& scale_vector) {//@override
 
 };
 
-static mat3 create_rotation_matrix(const float& angle) {
+static mat3 create_rotation_matrix(const double& angle) {
 
-	float alpha = to_radians(angle);
+	double alpha = to_radians(angle);
 
 	return mat3(
 
@@ -755,13 +744,13 @@ static mat3 create_rotation_matrix(const float& angle) {
 
 };
 
-static mat3 create_model_transformation_matrix(const float& Tx, const float& Ty, const float& Sx, const float& Sy, const float& alpha) {
+static mat3 create_model_transformation_matrix(const double& Tx, const double& Ty, const double& Sx, const double& Sy, const double& alpha) {
 
 	return create_rotation_matrix(alpha) * create_scale_matrix(Sx, Sy) * create_translation_matrix(Tx, Ty);
 
 };
 
-static mat3 create_model_transformation_matrix(const vec2& T, const vec2& S, const float& alpha) {//@override
+static mat3 create_model_transformation_matrix(const vec2& T, const vec2& S, const double& alpha) {//@override
 
 	return create_rotation_matrix(alpha) * create_scale_matrix(S) * create_translation_matrix(T);
 
@@ -774,7 +763,7 @@ static mat3 create_model_transformation_matrix(const mat3& T, const mat3& S, con
 };
 
 //3D
-static mat4 create_translation_matrix(const float& x, const float& y, const float& z) {
+static mat4 create_translation_matrix(const double& x, const double& y, const double& z) {
 
 	return mat4(
 
@@ -800,7 +789,7 @@ static mat4 create_translation_matrix(const vec3& translation_vector) {//@overri
 
 };
 
-static mat4 create_scale_matrix(const float& x, const float& y, const float& z) {
+static mat4 create_scale_matrix(const double& x, const double& y, const double& z) {
 
 	return mat4(
 
@@ -826,9 +815,9 @@ static mat4 create_scale_matrix(const vec3& scale_vector) {//@override
 
 };
 
-static mat4 create_X_rotation_matrix(const float& angle) {
+static mat4 create_X_rotation_matrix(const double& angle) {
 
-	float alpha = to_radians(angle);
+	double alpha = to_radians(angle);
 
 	return mat4(
 
@@ -841,9 +830,9 @@ static mat4 create_X_rotation_matrix(const float& angle) {
 
 };
 
-static mat4 create_Y_rotation_matrix(const float& angle) {
+static mat4 create_Y_rotation_matrix(const double& angle) {
 
-	float alpha = to_radians(angle);
+	double alpha = to_radians(angle);
 
 	return mat4(
 
@@ -856,9 +845,9 @@ static mat4 create_Y_rotation_matrix(const float& angle) {
 
 };
 
-static mat4 create_Z_rotation_matrix(const float& angle) {
+static mat4 create_Z_rotation_matrix(const double& angle) {
 
-	float alpha = to_radians(angle);
+	double alpha = to_radians(angle);
 
 	return mat4(
 
@@ -871,7 +860,7 @@ static mat4 create_Z_rotation_matrix(const float& angle) {
 
 };
 
-static mat4 create_rotation_matrix(const float& alpha, const float& theta, const float& delta) {
+static mat4 create_rotation_matrix(const double& alpha, const double& theta, const double& delta) {
 
 	return create_X_rotation_matrix(alpha) * create_Y_rotation_matrix(theta) * create_Z_rotation_matrix(delta);
 
@@ -912,15 +901,15 @@ static mat4 create_view_matrix(const vec3& r, const vec3& u, const vec3& d, cons
 
 };
 
-static mat4 create_parallel_projection_matrix(const float& fov, const float& screen_width, const float& screen_height, const float& near, const float& far) {//also known as orthographic projection matrix
+static mat4 create_parallel_projection_matrix(const double& fov, const double& screen_width, const double& screen_height, const double& near, const double& far) {//also known as orthographic projection matrix
 
-	float view_angle = to_radians(fov);
-	float aspect_ratio = screen_width / screen_height;
-	float alpha = tan(view_angle / 2.0f);
-	float top = near * alpha;
-	float bottom = -top;
-	float right = near * aspect_ratio * alpha;
-	float left = -right;
+	double view_angle = to_radians(fov);
+	double aspect_ratio = screen_width / screen_height;
+	double alpha = tan(view_angle / 2.0f);
+	double top = near * alpha;
+	double bottom = -top;
+	double right = near * aspect_ratio * alpha;
+	double left = -right;
 
 	return mat4(
 
@@ -933,15 +922,15 @@ static mat4 create_parallel_projection_matrix(const float& fov, const float& scr
 
 };
 
-static mat4 create_frustum_projection_matrix(const float& fov, const float& screen_width, const float& screen_height, const float& near, const float& far) {
+static mat4 create_frustum_projection_matrix(const double& fov, const double& screen_width, const double& screen_height, const double& near, const double& far) {
 
-	float view_angle = to_radians(fov);
-	float aspect_ratio = screen_width / screen_height;
-	float alpha = tan(view_angle / 2.0f);
-	float top = near * alpha;
-	float bottom = -top;
-	float right = near * aspect_ratio * alpha;
-	float left = -right;
+	double view_angle = to_radians(fov);
+	double aspect_ratio = screen_width / screen_height;
+	double alpha = tan(view_angle / 2.0f);
+	double top = near * alpha;
+	double bottom = -top;
+	double right = near * aspect_ratio * alpha;
+	double left = -right;
 
 	mat4 frustum = mat4(
 
@@ -957,15 +946,15 @@ static mat4 create_frustum_projection_matrix(const float& fov, const float& scre
 };
 
 //in openGL we dont require a view port matrix since the API transforms our coordinates automatically to NDC, we just need to use the function glViewport() at start of program initialization
-static mat4 create_view_port_matrix(const float& fov, const float& screen_width, const float& screen_height, const float& near, const float& far) {
+static mat4 create_view_port_matrix(const double& fov, const double& screen_width, const double& screen_height, const double& near, const double& far) {
 
-	float view_angle = to_radians(fov);
-	float aspect_ratio = screen_width / screen_height;
-	float alpha = tan(view_angle / 2.0f);
-	float top = near * alpha;
-	float bottom = -top;
-	float right = near * aspect_ratio * alpha;
-	float left = -right;
+	double view_angle = to_radians(fov);
+	double aspect_ratio = screen_width / screen_height;
+	double alpha = tan(view_angle / 2.0f);
+	double top = near * alpha;
+	double bottom = -top;
+	double right = near * aspect_ratio * alpha;
+	double left = -right;
 
 	return mat4(
 
@@ -990,22 +979,22 @@ static mat4 create_model_view_projection_matrix(const mat4& model_transformation
 
 };
 
-static float get_area_of_circle(const float& radius) {
+static double get_area_of_circle(const double& radius) {
 
 	return radius * radius * 3.14159265359f;
 
 };
 
-static float get_determinant(const vec2& A, const vec2& B) {
+static double get_determinant(const vec2& A, const vec2& B) {
 
-	float a = A.x * B.y;
-	float b = A.y * B.x;
+	double a = A.x * B.y;
+	double b = A.y * B.x;
 
 	return a - b;
 
 };
 
-static float get_area_of_triangle(const vec2& a, const vec2& b, const vec2& c) {
+static double get_area_of_triangle(const vec2& a, const vec2& b, const vec2& c) {
 
 	vec2 ab = b - a;
 	vec2 ac = c - a;
@@ -1014,9 +1003,9 @@ static float get_area_of_triangle(const vec2& a, const vec2& b, const vec2& c) {
 
 };
 
-static float get_area_of_2D_surface(const std::vector<vec3>& positions, const vec3& center) {
+static double get_area_of_2D_surface(const std::vector<vec3>& positions, const vec3& center) {
 
-	float total_area = 0.0f;
+	double total_area = 0.0f;
 	for (int i = 0; i < positions.size(); ++i) {
 
 		int next_index = (i + 1) % positions.size();
@@ -1034,7 +1023,7 @@ static float get_area_of_2D_surface(const std::vector<vec3>& positions, const ve
 };
 
 //openGL calculates these automatically
-static std::vector<float> get_barycentric_coordinates(const vec3& point, const vec3& A, const vec3& B, const vec3& C) {
+static std::vector<double> get_barycentric_coordinates(const vec3& point, const vec3& A, const vec3& B, const vec3& C) {
 
 	vec2 p = vec2(point.x, point.y);
 	vec2 a = vec2(A.x, A.y);
@@ -1046,20 +1035,20 @@ static std::vector<float> get_barycentric_coordinates(const vec3& point, const v
 	std::vector<vec2> alpha_triangle = { p, b, c };
 	std::vector<vec2> gamma_triangle = { p, a, b };
 
-	float area_main = get_area_of_triangle(main_triangle[0], main_triangle[1], main_triangle[2]);
-	float area_alpha = get_area_of_triangle(alpha_triangle[0], alpha_triangle[1], alpha_triangle[2]);
-	float area_beta = get_area_of_triangle(beta_triangle[0], beta_triangle[1], beta_triangle[2]);
-	float area_gamma = get_area_of_triangle(gamma_triangle[0], gamma_triangle[1], gamma_triangle[2]);
+	double area_main = get_area_of_triangle(main_triangle[0], main_triangle[1], main_triangle[2]);
+	double area_alpha = get_area_of_triangle(alpha_triangle[0], alpha_triangle[1], alpha_triangle[2]);
+	double area_beta = get_area_of_triangle(beta_triangle[0], beta_triangle[1], beta_triangle[2]);
+	double area_gamma = get_area_of_triangle(gamma_triangle[0], gamma_triangle[1], gamma_triangle[2]);
 
-	float alpha = area_alpha / area_main;
-	float beta = area_beta / area_main;
-	float gamma = area_gamma / area_main;
+	double alpha = area_alpha / area_main;
+	double beta = area_beta / area_main;
+	double gamma = area_gamma / area_main;
 
 	return { alpha, beta, gamma };
 
 };
 
-static float clamp(const float& value, const float& min, const float& max) {
+static double clamp(const double& value, const double& min, const double& max) {
 
 	if (value > max) {
 
